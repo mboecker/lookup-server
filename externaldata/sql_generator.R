@@ -3,13 +3,15 @@ uploader = 2702;
 
 # This function will generate a query, which returns the 10 closest points in the database.
 # These can then be used to calculate an interpolation of some sorts.
-generate_query = function(input_ids, xs) {
+# TODO: Add task_id to setups
+generate_query = function(task_id, input_ids, xs) {
   # length(input_ids) == length(xs)
   
   # This function will generate distinct names for use in the SQL query for the first, second, .. parameter
   generate_identifier = function(n) {
     # TODO: generalize this to unlimited names. hashing of 1:n or something?
-    names = c("first", "second", "third", "forth", "fifth")
+    names = c("first", "second", "third", "forth", "fifth","sixth", "seventh", "eighth", "ninth", "tenth")
+    names = append(names, paste0("tenthplus", names))
     return(names[n])
   }
   
@@ -22,6 +24,11 @@ generate_query = function(input_ids, xs) {
   
   # This function will make sure we only compare values from the same run, e.g. dont use parameter1 from one run and use parameter2 from another
   generate_equalsterm = function(n) {
+    # In case of single parameter, there is only one subquery, therefore we don't need this function to tie them together.
+    if(n == 1) {
+      return("1 = 1")
+    }
+    
     names = generate_identifier(1:n)
     r = "first.setup = second.setup"
     if(n > 2) {
@@ -37,6 +44,7 @@ generate_query = function(input_ids, xs) {
   # This function will generate the subquery for one parameter.
   # If the parameter value is given as a string, it will match only if there is that exact value in the database.
   # If the parameter value is a numeric, it will sort the results by distance to x.
+  # The inner query is to limit the "search space" to those already computed on the given task.
   generate_subquery = function(input_id, x) {
     # is_numeric(input_id)
     # is_numeric(x)
@@ -45,12 +53,14 @@ generate_query = function(input_ids, xs) {
                     AS distance
                     FROM input_setting
                     WHERE input_id = ", input_id, "
+                    AND setup IN (SELECT setup FROM run WHERE task_id = ", task_id, ")
                     ORDER BY distance ASC"))
     } else {
       return(paste0("SELECT setup, value, 0 AS distance
                     FROM input_setting
                     WHERE input_id = ", input_id, "
                     AND value = '", x, "'
+                    AND setup IN (SELECT setup FROM run WHERE task_id = ", task_id, ")
                     ORDER BY distance ASC"))
     }
   }
@@ -67,7 +77,7 @@ generate_query = function(input_ids, xs) {
     for(i in 1:n) {
       s = c(s, (paste0("(", generate_subquery(input_ids[i], xs[i]),") AS ", names[i])))
     }
-    return(paste0(s, collapse=","))
+    return(paste0(s, collapse=",\n    "))
   }
   
   n = length(input_ids)
@@ -79,7 +89,6 @@ generate_query = function(input_ids, xs) {
   return(paste0("SELECT
     ", sumterm, " AS sum_distance,
     first.setup AS setup
-    FROM
-    ", generate_subqueries(input_ids, xs), "
+    FROM ", generate_subqueries(input_ids, xs), "
     WHERE ", equalsterm, " ORDER BY sum_distance LIMIT 10"))
 }
