@@ -9,5 +9,6 @@ echo "CREATE DATABASE IF NOT EXISTS openml;" | mysql
 echo "Data loading finished."
 
 # Start the REST server.
-/usr/bin/Rscript /root/rest_server.R
+cd /root/
+/usr/bin/Rscript rest_server.R
 echo "Stopped working."
