@@ -1,6 +1,5 @@
 # This function will generate a query, which returns the 10 closest points in the database.
 # These can then be used to calculate an interpolation of some sorts.
-# TODO: Add task_id to setups
 generate_query = function(task_id, input_ids, xs) {
   # length(input_ids) == length(xs)
   
