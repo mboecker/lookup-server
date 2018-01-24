@@ -60,9 +60,11 @@ predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha
   }
   
   # For now, use the nearest point.
+  # TODO: add interpolation if two points are on opposite sides.
   setup_id = setup_data$setup[1]
   
   # Now, we request performance data on the nearest point given by the database.
+  # TODO: find out if function_id 4 is correct.
   sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source = (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
   performance_data = dbGetQuery(con, sql.exp)
   
