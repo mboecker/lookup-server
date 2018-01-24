@@ -1,6 +1,3 @@
-# This is set to limit the queries to our bot, uploader id 2702.
-uploader = 2702;
-
 # This function will generate a query, which returns the 10 closest points in the database.
 # These can then be used to calculate an interpolation of some sorts.
 # TODO: Add task_id to setups

@@ -7,15 +7,46 @@ mysql_host = "127.0.0.1"
 
 con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname, host = mysql_host)
 
+# This is set to limit the queries to our bot, uploader id 2702.
+uploader = 2702
+
 source("/mysqldata/sql_generator.R")
 
+is_simple_number = function(x) {
+  !is.na(suppressWarnings(as.numeric(x)))
+}
+
+# This runs MySQL-Escape-String on the given named list.
+# This secures the API for MySQL-Injection-Attacks.
+escapeParameterList = function(con, parameters) {
+  unescaped_names = as.character(names(parameters))
+  escaped_names = dbEscapeStrings(con, unescaped_names)
+  unescaped_values = as.character(unlist(unname(parameters)))
+  escaped_values = dbEscapeStrings(con, unescaped_values)
+  return(setNames(as.list(escaped_values), escaped_names))
+}
+
 predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha = 5, eta = 3)) {
+  return_value = list()
+  
+  # The following commands secure the API for MySQL-Injection-Attacks.
+  if(!is_simple_number(impl_id)) {
+    return_value$error = "Please give implementation_id as a number.";
+    return(return_value)
+  }
+  if(!is_simple_number(task_id)) {
+    return_value$error = "Please give task_id as a number.";
+    return(return_value)
+  }
+  parameters = escapeParameterList(con, parameters)
+  
   # Load parameter names for this algorithm
   sql.exp = paste0("SELECT id, name FROM input WHERE implementation_id = ", impl_id)
   query_results = dbGetQuery(con, sql.exp)
   
   if(dim(query_results)[1] == 0) {
-    stop("The algorithm you gave by implementation_id does not exist in this database.")
+    return_value$error = "The algorithm you gave by implementation_id does not exist in this database."
+    return(return_value)
   }
   
   # This contains the names for the parameters required by the chosen algorithm.
@@ -35,7 +66,8 @@ predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha
     idx = which(parameter_names == names(parameters[i]))
 
     if(length(idx) == 0) {
-      stop("This supplied parameter is not usable: ", names(parameters)[i])
+      return_value$error = paste0("This supplied parameter is not applicable: ", names(parameters)[i])
+      return(return_value)
     }
     else {
       parameter_ids_sorted[i] = parameter_ids[idx]
@@ -47,7 +79,8 @@ predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha
   run_data = dbGetQuery(con, sql.exp)
   
   if(dim(run_data)[1] == 0) {
-    stop("The task you requested has not yet been evaluated by the specified uploader.")
+    return_value$error = "The task you requested has not yet been evaluated by the specified uploader."
+    return(return_value)
   }
   
   # then, look in input_setting for the input_ids (for the names of parameters) and data on closest point.
@@ -56,11 +89,13 @@ predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha
   setup_data = dbGetQuery(con, sql.exp)
   
   if(dim(setup_data)[1] == 0) {
-    stop("No suitable points found in the database.")
+    return_value$error = "No suitable points found in the database."
+    return(return_value)
   }
   
   # For now, use the nearest point.
   # TODO: add interpolation if two points are on opposite sides.
+  first_distance = setup_data$sum_distance[1]
   setup_id = setup_data$setup[1]
   
   # Now, we request performance data on the nearest point given by the database.
@@ -68,7 +103,12 @@ predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha
   sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source = (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
   performance_data = dbGetQuery(con, sql.exp)
   
-  return(as.numeric(performance_data))
+  # Save information in the return_value.
+  return_value$performance = as.numeric(performance_data)
+  return_value$nearest_setup = setup_id
+  return_value$nearest_setup_distance = first_distance
+  
+  return(return_value)
 }
 
 json_error <- function(err_msg, more=list()) {
@@ -77,38 +117,54 @@ json_error <- function(err_msg, more=list()) {
 
 #* @get /
 lookup <- function(...) {
-	ls <- as.list(match.call())
-	ls[0:3] <- NULL
+  
+  # Get request parameters as named list.
+	ls = as.list(match.call())
+	
+	# Remove first three entries (because they're not useful).
+	ls[0:3] = NULL
 
+	# This will contain some kind of "warnings" for the api.
 	notices = list()
 
-	if(!("alg" %in% names(ls))) {
-		error_msg = "Please give the machine learning algorithm you want to use as a parameter (alg=x)."
-		return(json_error(error_msg, more=list(missing_args = "alg")))
+	# Check, if algorithm is given.
+	if(!("algo" %in% names(ls))) {
+		error_msg = "Please give the machine learning algorithm you want to use as a parameter (algo=x)."
+		return(json_error(error_msg, more=list(missing_args = "algo")))
+	}
+	
+	impl_id = ls[["algo"]]
+	ls[["algo"]] = NULL
+
+	# Check, if algorithm is correctly formed.
+	if(!is_simple_number(impl_id)) {
+	  error_msg = "Please give the machine learning algorithm you want to use in numeric form (implementation_id)."
+	  return(json_error(error_msg, more=list(malformed_args = "algo")))
+	}
+	
+	# Check, if task is given.
+	if(!("task" %in% names(ls))) {
+	  error_msg = "Please give the machine learning task you want to use as a parameter (task=x)."
+	  return(json_error(error_msg, more=list(missing_args = "task")))
+	}
+	
+	task_id = ls[["task"]]
+	ls[["task"]] = NULL
+	
+	# Check, if task_id is correctly formed.
+	if(!is_simple_number(task_id)) {
+	  error_msg = "Please give the machine learning task you want to use in numeric form (task_id)."
+	  return(json_error(error_msg, more=list(malformed_args = "task")))
+	}
+	
+	if(length(ls) == 0) {
+	  error_msg = "Please supply the parameters you want to set for the algorithm."
+	  return(json_error(error_msg))
 	}
 
-	algorithm = ls[["alg"]]
-
-	expected_parameters = list("threshold", "k")
-
-	missing_parameters = expected_parameters
-	missing_parameters[expected_parameters %in% names(ls)] = NULL
-
-	if(length(missing_parameters) > 0) {
-		error_msg = paste0("Please supply adequat parameters for this machine learning algorithm. You are missing: ", paste0(missing_parameters, collapse=", "))
-		return(json_error(error_msg, more=list(missing_parameters = simplify2array(missing_parameters))))
-	}
-
-	over_parameters = ls
-	over_parameters["alg"] = NULL
-	over_parameters[names(over_parameters) %in% expected_parameters] = NULL
-
-	if(length(over_parameters) > 0) {
-		error_msg = paste0("You supplied too many parameters for this machine learning algorithm: ", paste0(names(over_parameters), collapse=", "))
-		notices = append(notices, error_msg)
-	}
-
-	response = list(performance = 0.0)
+  result = predict_point(impl_id, task_id, ls)
+  
+  response = list(performance = result$performance, nearest_setup = result$nearest_setup, distance = result$nearest_setup_distance)
 
 	if(length(notices) > 0) {
 		response = append(response, list(notices = notices))
