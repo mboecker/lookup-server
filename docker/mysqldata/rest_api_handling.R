@@ -1,4 +1,5 @@
 library(RMySQL)
+library(checkmate)
 
 mysql_username = "root"
 mysql_password = ""
@@ -11,10 +12,6 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 uploader = 2702
 
 source("/mysqldata/sql_generator.R")
-
-is_simple_number = function(x) {
-  !is.na(suppressWarnings(as.numeric(x)))
-}
 
 # This runs MySQL-Escape-String on the given named list.
 # This secures the API for MySQL-Injection-Attacks.
@@ -30,11 +27,11 @@ predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha
   return_value = list()
   
   # The following commands secure the API for MySQL-Injection-Attacks.
-  if(!is_simple_number(impl_id)) {
+  if(!testInt(impl_id)) {
     return_value$error = "Please give implementation_id as a number.";
     return(return_value)
   }
-  if(!is_simple_number(task_id)) {
+  if(!testInt(task_id)) {
     return_value$error = "Please give task_id as a number.";
     return(return_value)
   }
@@ -137,7 +134,7 @@ lookup <- function(...) {
 	ls[["algo"]] = NULL
 
 	# Check, if algorithm is correctly formed.
-	if(!is_simple_number(impl_id)) {
+	if(!testInt(impl_id)) {
 	  error_msg = "Please give the machine learning algorithm you want to use in numeric form (implementation_id)."
 	  return(json_error(error_msg, more=list(malformed_args = "algo")))
 	}
@@ -152,7 +149,7 @@ lookup <- function(...) {
 	ls[["task"]] = NULL
 	
 	# Check, if task_id is correctly formed.
-	if(!is_simple_number(task_id)) {
+	if(!testInt(task_id)) {
 	  error_msg = "Please give the machine learning task you want to use in numeric form (task_id)."
 	  return(json_error(error_msg, more=list(malformed_args = "task")))
 	}
