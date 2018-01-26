@@ -18,5 +18,5 @@ server.url = "http://localhost::8746"
 param = list(impl_id = 6767, task_id = 3896, parameters = list(alpha = 5, eta = 3))
 query = toJSON(param)
 httr.res = httr::GET(server.url, query = query, httr::accept_json())
-res = fromJSON(httr.res)
+res = fromJSON(httr::content(httr.res))
 ```
