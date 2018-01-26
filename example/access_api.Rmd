@@ -1,0 +1,17 @@
+---
+title: "Access API"
+author: "Jakob Richter"
+date: "January 26, 2018"
+output: html_document
+---
+
+Build and start the container
+```{r, engine='sh', eval = FALSE}
+bash ../docker/rebuild-omlbotlookup.sh
+bash ../docker/run-omlbotlookup.sh
+```
+
+Accessing the API
+```{r acces}
+
+```
