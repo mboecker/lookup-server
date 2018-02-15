@@ -1,3 +1,10 @@
+-- This .sql file requires you to change a setting of your MySQL-Server.
+-- Add "innodb_buffer_pool_size=1G" under the [mysqld]-section of your mysqld.cnf file.
+-- (on Ubuntu, this is located in /etc/mysql/mysql.conf.d/mysqld.cnf)
+
+-- This file will remove all data of the database not required by the API.
+-- It will also remove all runs from any than uploader_id 2702 (our OpenML bot).
+
 SET foreign_key_checks = 0;
 DROP TABLE IF EXISTS algorithm;
 DROP TABLE IF EXISTS algorithm_quality;
@@ -44,3 +51,6 @@ DROP TABLE IF EXISTS task_type_inout;
 SET foreign_key_checks = 1;
 
 DELETE FROM run WHERE uploader <> 2702;
+
+DELETE FROM evaluation WHERE source NOT IN (SELECT rid FROM run);
+DELETE FROM input WHERE id NOT IN (SELECT input_id FROM input_setting WHERE setup IN (SELECT setup FROM run));
