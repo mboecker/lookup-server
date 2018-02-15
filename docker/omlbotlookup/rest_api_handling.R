@@ -11,7 +11,7 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 # This is set to limit the queries to our bot, uploader id 2702.
 uploader = 2702
 
-source("/mysqldata/sql_generator.R")
+source("sql_generator.R")
 
 # This runs MySQL-Escape-String on the given named list.
 # This secures the API for MySQL-Injection-Attacks.
@@ -130,7 +130,7 @@ lookup <- function(...) {
 		return(json_error(error_msg, more=list(missing_args = "algo")))
 	}
 	
-	impl_id = ls[["algo"]]
+	impl_id = as.numeric(ls[["algo"]])
 	ls[["algo"]] = NULL
 
 	# Check, if algorithm is correctly formed.
@@ -145,7 +145,7 @@ lookup <- function(...) {
 	  return(json_error(error_msg, more=list(missing_args = "task")))
 	}
 	
-	task_id = ls[["task"]]
+	task_id = as.numeric(ls[["task"]])
 	ls[["task"]] = NULL
 	
 	# Check, if task_id is correctly formed.
