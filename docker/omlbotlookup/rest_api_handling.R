@@ -23,7 +23,7 @@ escapeParameterList = function(con, parameters) {
   return(setNames(as.list(escaped_values), escaped_names))
 }
 
-predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha = 5, eta = 3)) {
+predict_point = function(impl_id, task_id, parameters) {
   return_value = list()
   
   # The following commands secure the API for MySQL-Injection-Attacks.
@@ -97,7 +97,7 @@ predict_point = function(impl_id = 6767, task_id = 3896, parameters = list(alpha
   
   # Now, we request performance data on the nearest point given by the database.
   # TODO: find out if function_id 4 is correct.
-  sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source = (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
+  sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source IN (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
   performance_data = dbGetQuery(con, sql.exp)
   
   # Save information in the return_value.
