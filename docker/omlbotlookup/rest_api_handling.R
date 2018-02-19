@@ -95,6 +95,14 @@ predict_point = function(impl_id, task_id, parameters) {
   first_distance = setup_data$sum_distance[1]
   setup_id = setup_data$setup[1]
   
+  # Request actual point data on the chosen nearest point
+  sql.exp = paste0("SELECT i.name, s.value FROM input_setting AS s JOIN input AS i WHERE s.input_id = i.id and s.setup = ", setup_id);
+  nearest_point_data_raw = dbGetQuery(con, sql.exp)
+  
+  # Convert to named list
+  nearest_point_data = as.list(nearest_point_data_raw$value)
+  names(nearest_point_data) = nearest_point_data_raw$name
+  
   # Now, we request performance data on the nearest point given by the database.
   # TODO: find out if function_id 4 is correct.
   sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source IN (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
@@ -104,6 +112,7 @@ predict_point = function(impl_id, task_id, parameters) {
   return_value$performance = as.numeric(performance_data)
   return_value$nearest_setup = setup_id
   return_value$nearest_setup_distance = first_distance
+  return_value$nearest_setup_real_values = nearest_point_data
   
   return(return_value)
 }
@@ -112,6 +121,7 @@ json_error <- function(err_msg, more=list()) {
 	append(list(error_message = err_msg), more)
 }
 
+#* @serializer unboxedJSON
 #* @get /
 lookup <- function(...) {
   
@@ -161,11 +171,14 @@ lookup <- function(...) {
 
   result = predict_point(impl_id, task_id, ls)
   
-  response = list(performance = result$performance, nearest_setup = result$nearest_setup, distance = result$nearest_setup_distance)
+  response = list(performance = result$performance,
+                  distance = result$nearest_setup_distance,
+                  nearest_setup = list(id = result$nearest_setup,
+                                       values = result$nearest_setup_real_values))
 
 	if(length(notices) > 0) {
 		response = append(response, list(notices = notices))
 	}
-
+  
 	return(response)
 }
