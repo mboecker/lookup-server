@@ -9,8 +9,7 @@ In order to start the docker image, you have to clone this repo and then build i
 
 See `docker/rebuild-omlbotlookup.sh` and `docker/run-omlbotlookup.sh` for examples.
 
-`docker/mysqldata` currently contains the actual API the container exposes. 
-But when finished, it should contain most of the data the container needs to access (some kind of stripped down version of the OpenML database mentioned above).
+`docker/mysqldata` should contain the actual database as an .sql file, which the API looks into. `docker/mysqldata/README` gives instructions on how to obtain and pre-process the database.sql file to minimize startup time of the container.
 
 Internally the container exposes the port `8000` but to not collide with other ports we map it to `8746` on the host in the examplary `run-omlbotlookup.sh` file.
 
