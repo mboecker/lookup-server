@@ -171,14 +171,24 @@ lookup <- function(...) {
 
   result = predict_point(impl_id, task_id, ls)
   
-  response = list(performance = result$performance,
+  if(is.null(result$error)) {
+    response = list(performance = result$performance,
                   distance = result$nearest_setup_distance,
                   nearest_setup = list(id = result$nearest_setup,
                                        values = result$nearest_setup_real_values))
+  } else {
+    response = list(error = result$error)
+  }
 
 	if(length(notices) > 0) {
 		response = append(response, list(notices = notices))
 	}
   
 	return(response)
+}
+
+#* @get /tasks
+tasks <- function() {
+  sql.exp = "SELECT DISTINCT task_id FROM run"
+  return(list(possible_task_ids = simplify2array(dbGetQuery(con, sql.exp))))
 }
