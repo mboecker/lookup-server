@@ -187,8 +187,33 @@ lookup <- function(...) {
 	return(response)
 }
 
+# List all possible tasks.
 #* @get /tasks
 tasks <- function() {
   sql.exp = "SELECT DISTINCT task_id FROM run"
   return(list(possible_task_ids = simplify2array(dbGetQuery(con, sql.exp))))
+}
+
+# List all possible algorithm ids for the given task.
+#* @get /algos
+algos <- function(task = "") {
+  # The following commands secure the API for MySQL-Injection-Attacks.
+  task_id = as.numeric(task)
+  if(!testInt(task_id)) {
+    return_value$error = "Please give the argument task as a number.";
+    return(return_value)
+  }
+  
+  # This requests every run setup with the given task.
+  setup_ids = paste0("SELECT DISTINCT setup FROM run WHERE task_id = ", task_id)
+  
+  # This requests the input_ids on every of these setups.
+  input_ids = paste0("SELECT DISTINCT input_id FROM input_setting WHERE setup IN (", setup_ids, ")")
+  
+  # This requests the implementation_id to every of these input_ids.
+  sql.exp = paste0("SELECT DISTINCT implementation_id FROM input WHERE id IN (", input_ids, ")")
+  
+  impl_ids = dbGetQuery(con, sql.exp)$implementation_id
+  
+  return(list(possible_algo_ids = impl_ids))
 }
