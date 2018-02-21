@@ -198,6 +198,8 @@ tasks <- function() {
 #* @serializer unboxedJSON
 #* @get /algos
 algos <- function(task = "") {
+  return_value = list()
+  
   # The following commands secure the API for MySQL-Injection-Attacks.
   task_id = as.numeric(task)
   if(!testInt(task_id)) {
