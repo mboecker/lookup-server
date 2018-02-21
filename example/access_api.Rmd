@@ -5,17 +5,54 @@ date: "January 26, 2018"
 output: html_document
 ---
 
-Build and start the container
+## Build and start the container
 ```{r, engine='sh', eval = FALSE}
 bash ../docker/rebuild-omlbotlookup.sh
 bash ../docker/run-omlbotlookup.sh
 ```
 
-Accessing the API
-```{r acces}
+## Accessing the API
+
+### Lookup performance data for ```algo``` on ```task``` with some given paramters
+```{r access}
 library(jsonlite)
 server.url = "http://localhost:8746"
 param = list(algo = 5965, task = 3, num.trees = 100)
 httr.res = httr::GET(server.url, query = param, httr::accept_json())
 res = httr::content(httr.res)
+
+# We return the performance estimate for your setup.
+performance = res$performance
+
+# We also return the euclidean distance to the nearest point in the database, so you know how certain we are.
+distance = res$distance
+
+# If you want to examine the actual point yourself, we return the setup id and parameter values of the actual run as well.
+nearest_setup = res$nearest_setup
+```
+
+### Request possible tasks
+```{r tasks}
+library(jsonlite)
+server.url = "http://localhost:8746/tasks"
+httr.res = httr::GET(server.url, httr::accept_json())
+res = httr::content(httr.res)
+
+# We return a list of the availiable task ids.
+possible_task_ids = res$possible_task_ids
+```
+
+### Request possible algos on specific task
+```{r algos}
+library(jsonlite)
+server.url = "http://localhost:8746/algos"
+param = list(task = 3)
+httr.res = httr::GET(server.url, query = param, httr::accept_json())
+res = httr::content(httr.res)
+
+# We return a list of every possible algorithm id for your given task.
+possible_algo_ids = res$possible_algo_ids
+
+# We also return the algorithm names for these ids.
+algorithm_names = res$algorithm_names
 ```
