@@ -195,6 +195,7 @@ tasks <- function() {
 }
 
 # List all possible algorithm ids for the given task.
+#* @serializer unboxedJSON
 #* @get /algos
 algos <- function(task = "") {
   # The following commands secure the API for MySQL-Injection-Attacks.
@@ -211,9 +212,16 @@ algos <- function(task = "") {
   input_ids = paste0("SELECT DISTINCT input_id FROM input_setting WHERE setup IN (", setup_ids, ")")
   
   # This requests the implementation_id to every of these input_ids.
-  sql.exp = paste0("SELECT DISTINCT implementation_id FROM input WHERE id IN (", input_ids, ")")
+  sql.exp = paste0("SELECT DISTINCT implementation_id, implementation.fullName FROM input INNER JOIN implementation ON implementation.id = input.implementation_id AND input.id IN (", input_ids, ")")
   
-  impl_ids = dbGetQuery(con, sql.exp)$implementation_id
+  result = dbGetQuery(con, sql.exp)
   
-  return(list(possible_algo_ids = impl_ids))
+  # This are the algorithm ids.
+  impl_ids = result$implementation_id
+  
+  # For convenience, we also list the algorithms name.
+  impl_names = as.list(result$fullName)
+  names(impl_names) = result$implementation_id
+  
+  return(list(possible_algo_ids = impl_ids, algorithm_names = impl_names))
 }
