@@ -7,7 +7,7 @@ RUN apt-get install -y rstudio-server r-base-dev sudo curl git libcurl4-openssl-
 
 RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('stringi','plumber','RMySQL', 'checkmate'));"
 
-COPY sql_generator.R rest_api_handling.R rest_server.R startup.sh /root/
+COPY parameter_ranges sql_generator.R rest_api_handling.R rest_server.R startup.sh /root/
 
 EXPOSE 8000
 
