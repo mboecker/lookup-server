@@ -1,3 +1,4 @@
+library(mlr)
 library(RMySQL)
 library(checkmate)
 
@@ -10,6 +11,8 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 
 # This is set to limit the queries to our bot, uploader id 2702.
 uploader = 2702
+
+load("parameter_ranges")
 
 source("sql_generator.R")
 
@@ -226,4 +229,69 @@ algos <- function(task = "") {
   names(impl_names) = result$implementation_id
   
   return(list(possible_algo_ids = impl_ids, algorithm_names = impl_names))
+}
+
+# List all possible algorithm ids for the given task.
+#* @serializer unboxedJSON
+#* @get /parameters
+parameters <- function(algo = "") {
+  return_value = list()
+  
+  # The following commands secure the API for MySQL-Injection-Attacks.
+  impl_id = as.numeric(algo)
+  if(!testInt(impl_id)) {
+    return_value$error = "Please give the argument algo as a number.";
+    return(return_value)
+  }
+  
+  # Request algo name from database
+  sql.exp = paste0("SELECT name FROM implementation WHERE id = '", impl_id, "'")
+  result = dbGetQuery(con, sql.exp)
+  algo_name = result$name
+  
+  if (dim(result)[1] == 0) {
+    return_value$error = "No algorithm with that ID found in the database.";
+    return(return_value)
+  }
+  
+  # Algorithm names in the database have a leading "mlr." in front of their name.
+  # We delete this.
+  if (substring(algo_name, 1, 4) == "mlr.") {
+    algo_name = substring(algo_name, 5)
+  }
+  
+  if (is.null(parameter_ranges[[algo_name]])) {
+    return_value$notice = "This algorithm was not found in the parameter_ranges file, which is extracted from the omlbot source. Parameters were reconstructed from the OpenML database."
+    
+    # Prepare SQL statement
+    sql.exp = paste0("SELECT i.name, MIN(s.value) AS min, MAX(s.value) AS max FROM input AS i JOIN input_setting AS s WHERE s.input_id = i.id AND i.implementation_id = ", impl_id, " GROUP BY i.name");
+    result = dbGetQuery(con, sql.exp)
+    
+    if(dim(result)[1] == 0) {
+      return_value$error = "No parameter data was found in the database for this algorithm."
+      return(return_value)
+    }
+    
+    # Prepare ranges-list and apply names
+    ranges = as.list(result$min)
+    names(ranges) = result$name
+    
+    mins = result["min"]
+    maxs = result["max"]
+    
+    # Fill with min-max-data
+    for(i in 1:length(ranges)) {
+      ranges[[i]] = list(lower = mins[i,], upper = maxs[i,])
+    }
+    
+    return_value$parameter_ranges = ranges
+  } else {
+    # Load parameter data from pre-saved file "parameter_ranges".
+    # See call to load() on top of this file.
+    params = parameter_ranges[[algo_name]]
+    
+    return_value$parameter_ranges = params
+  }
+  
+  return(params)
 }
