@@ -1,4 +1,3 @@
-library(mlr)
 library(RMySQL)
 library(checkmate)
 
@@ -293,5 +292,5 @@ parameters <- function(algo = "") {
     return_value$parameter_ranges = params
   }
   
-  return(params)
+  return(return_value)
 }
