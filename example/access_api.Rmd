@@ -13,7 +13,7 @@ bash ../docker/run-omlbotlookup.sh
 
 ## Accessing the API
 
-### Lookup performance data for ```algo``` on ```task``` with some given paramters
+### Lookup performance data for `algo` on `task` with some given paramters
 ```{r access}
 library(jsonlite)
 server.url = "http://localhost:8746"
@@ -32,27 +32,33 @@ nearest_setup = res$nearest_setup
 ```
 
 ### Request possible tasks
+
+# We return a list of the availiable task ids.
 ```{r tasks}
-library(jsonlite)
 server.url = "http://localhost:8746/tasks"
 httr.res = httr::GET(server.url, httr::accept_json())
 res = httr::content(httr.res)
-
-# We return a list of the availiable task ids.
-possible_task_ids = res$possible_task_ids
+res
 ```
 
 ### Request possible algos on specific task
 ```{r algos}
-library(jsonlite)
 server.url = "http://localhost:8746/algos"
 param = list(task = 3)
 httr.res = httr::GET(server.url, query = param, httr::accept_json())
 res = httr::content(httr.res)
-
 # We return a list of every possible algorithm id for your given task.
-possible_algo_ids = res$possible_algo_ids
-
 # We also return the algorithm names for these ids.
-algorithm_names = res$algorithm_names
+res$possible_algo_ids
+res$algorithm_names
 ```
+
+### Request possible parameters
+```{r parameters}
+server.url = "http://localhost:8746/parameters"
+param = list(algo = 5859)
+httr.res = httr::GET(server.url, query = param, httr::accept_json())
+res = httr::content(httr.res)
+res
+```
+
