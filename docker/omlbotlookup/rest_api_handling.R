@@ -11,8 +11,11 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 # This is set to limit the queries to our bot, uploader id 2702.
 uploader = 2702
 
-load("parameter_ranges")
+# See /docker/preparation/prepare_parameter_ranges.R for instructions.
+# This file contains parameter range data obtained from the omlbot-sourcecode.
+parameter_ranges = readRDS("parameter_ranges.Rds")
 
+# This file can generate the rather complex euclidean-sorting query used for nearest neighbor calculation.
 source("sql_generator.R")
 
 # This runs MySQL-Escape-String on the given named list.
@@ -25,6 +28,8 @@ escapeParameterList = function(con, parameters) {
   return(setNames(as.list(escaped_values), escaped_names))
 }
 
+# This is the most interesting function in here.
+# Actual lookup happens here.
 predict_point = function(impl_id, task_id, parameters) {
   return_value = list()
   

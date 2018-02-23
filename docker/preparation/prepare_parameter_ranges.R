@@ -129,4 +129,4 @@ parameters = function() {
 
 parameter_ranges = parameters()
 
-save(parameter_ranges, file = "parameter_ranges")
+saveRDS(parameter_ranges, file = "../omlbotlookup/parameter_ranges.Rds")
