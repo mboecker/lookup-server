@@ -120,7 +120,7 @@ predict_point = function(impl_id, task_id, parameters) {
 }
 
 json_error <- function(err_msg, more=list()) {
-	append(list(error_message = err_msg), more)
+  append(list(error_message = err_msg), more)
 }
 
 #* @serializer unboxedJSON
@@ -128,48 +128,48 @@ json_error <- function(err_msg, more=list()) {
 lookup <- function(...) {
   
   # Get request parameters as named list.
-	ls = as.list(match.call())
-	
-	# Remove first three entries (because they're not useful).
-	ls[0:3] = NULL
+  ls = as.list(match.call())
+  
+  # Remove first three entries (because they're not useful).
+  ls[0:3] = NULL
 
-	# This will contain some kind of "warnings" for the api.
-	notices = list()
+  # This will contain some kind of "warnings" for the api.
+  notices = list()
 
-	# Check, if algorithm is given.
-	if(!("algo" %in% names(ls))) {
-		error_msg = "Please give the machine learning algorithm you want to use as a parameter (algo=x)."
-		return(json_error(error_msg, more=list(missing_args = "algo")))
-	}
-	
-	impl_id = as.numeric(ls[["algo"]])
-	ls[["algo"]] = NULL
+  # Check, if algorithm is given.
+  if(!("algo" %in% names(ls))) {
+    error_msg = "Please give the machine learning algorithm you want to use as a parameter (algo=x)."
+    return(json_error(error_msg, more=list(missing_args = "algo")))
+  }
+  
+  impl_id = as.numeric(ls[["algo"]])
+  ls[["algo"]] = NULL
 
-	# Check, if algorithm is correctly formed.
-	if(!testInt(impl_id)) {
-	  error_msg = "Please give the machine learning algorithm you want to use in numeric form (implementation_id)."
-	  return(json_error(error_msg, more=list(malformed_args = "algo")))
-	}
-	
-	# Check, if task is given.
-	if(!("task" %in% names(ls))) {
-	  error_msg = "Please give the machine learning task you want to use as a parameter (task=x)."
-	  return(json_error(error_msg, more=list(missing_args = "task")))
-	}
-	
-	task_id = as.numeric(ls[["task"]])
-	ls[["task"]] = NULL
-	
-	# Check, if task_id is correctly formed.
-	if(!testInt(task_id)) {
-	  error_msg = "Please give the machine learning task you want to use in numeric form (task_id)."
-	  return(json_error(error_msg, more=list(malformed_args = "task")))
-	}
-	
-	if(length(ls) == 0) {
-	  error_msg = "Please supply the parameters you want to set for the algorithm."
-	  return(json_error(error_msg))
-	}
+  # Check, if algorithm is correctly formed.
+  if(!testInt(impl_id)) {
+    error_msg = "Please give the machine learning algorithm you want to use in numeric form (implementation_id)."
+    return(json_error(error_msg, more=list(malformed_args = "algo")))
+  }
+  
+  # Check, if task is given.
+  if(!("task" %in% names(ls))) {
+    error_msg = "Please give the machine learning task you want to use as a parameter (task=x)."
+    return(json_error(error_msg, more=list(missing_args = "task")))
+  }
+  
+  task_id = as.numeric(ls[["task"]])
+  ls[["task"]] = NULL
+  
+  # Check, if task_id is correctly formed.
+  if(!testInt(task_id)) {
+    error_msg = "Please give the machine learning task you want to use in numeric form (task_id)."
+    return(json_error(error_msg, more=list(malformed_args = "task")))
+  }
+  
+  if(length(ls) == 0) {
+    error_msg = "Please supply the parameters you want to set for the algorithm."
+    return(json_error(error_msg))
+  }
 
   result = predict_point(impl_id, task_id, ls)
   
@@ -182,11 +182,11 @@ lookup <- function(...) {
     response = list(error = result$error)
   }
 
-	if(length(notices) > 0) {
-		response = append(response, list(notices = notices))
-	}
+  if(length(notices) > 0) {
+    response = append(response, list(notices = notices))
+  }
   
-	return(response)
+  return(response)
 }
 
 # List all possible tasks.
