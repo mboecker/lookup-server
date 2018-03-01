@@ -1,0 +1,21 @@
+Package: omlTuneBenchR
+Type: Package
+Title: omlTuneBenchR wraps the omlTuneBench API in a smoof function
+Version: 0.1.0
+Authors@R: c(
+    person("Richter", "Jakob", NULL, "jakob1richter@gmail.com", role = c("cre", "aut"))
+    )
+Description: Define an openml dataset and an learner to obtain a tunable smoof function.
+License: BSD_3_clause + file LICENSE
+Encoding: UTF-8
+Roxygen: list(wrap = FALSE, markdown = TRUE)
+LazyData: true
+Depends:
+    smoof,
+    ParamHelpers,
+    checkmate,
+    httr
+Suggests:
+    testthat,
+    knitr
+VignetteBuilder: knitr
