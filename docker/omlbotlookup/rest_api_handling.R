@@ -30,6 +30,7 @@ escapeParameterList = function(con, parameters) {
 
 # This is the most interesting function in here.
 # Actual lookup happens here.
+# Returns a named list with either $error set, or the results of the lookup ($performance, ...)
 predict_point = function(impl_id, task_id, parameters) {
   return_value = list()
   
@@ -266,21 +267,23 @@ algos <- function(task = "") {
 parameters <- function(algo = "") {
   return_value = list()
   
+  impl_id = algo
+  
   # The following commands secure the API for MySQL-Injection-Attacks.
-  impl_id = as.numeric(algo)
-  if(!testInt(impl_id)) {
-    return_value$error = "Please give the argument algo as a number.";
-    return(return_value)
-  }
-  
-  # Request algo name from database
-  sql.exp = paste0("SELECT name FROM implementation WHERE id = '", impl_id, "'")
-  result = dbGetQuery(con, sql.exp)
-  algo_name = result$name
-  
-  if (dim(result)[1] == 0) {
-    return_value$error = "No algorithm with that ID found in the database.";
-    return(return_value)
+  if(!testInt(as.numeric(impl_id))) {
+    impl_id = dbEscapeStrings(con, impl_id)
+    algo_name = impl_id
+    impl_id = NULL
+  } else {
+    # Request algo name from database
+    sql.exp = paste0("SELECT name FROM implementation WHERE id = '", impl_id, "'")
+    result = dbGetQuery(con, sql.exp)
+    algo_name = result$name
+    
+    if (dim(result)[1] == 0) {
+      return_value$error = "No algorithm with that ID found in the database.";
+      return(return_value)
+    }
   }
   
   # Algorithm names in the database have a leading "mlr." in front of their name.
@@ -289,8 +292,14 @@ parameters <- function(algo = "") {
     algo_name = substring(algo_name, 5)
   }
   
+  # Extract parameter ranges from database.
   if (is.null(parameter_ranges[[algo_name]])) {
     return_value$notice = "This algorithm was not found in the parameter_ranges file, which is extracted from the omlbot source. Parameters were reconstructed from the OpenML database."
+    
+    if(is.null(impl_id)) {
+      return_value$error = "When using the algorithm name instead of the algorithm id, parameter range reconstruction is (currently) not possible."
+      return(return_value)
+    }
     
     # Prepare SQL statement
     sql.exp = paste0("SELECT i.name, MIN(s.value) AS min, MAX(s.value) AS max FROM input AS i JOIN input_setting AS s WHERE s.input_id = i.id AND i.implementation_id = ", impl_id, " GROUP BY i.name");
@@ -316,7 +325,7 @@ parameters <- function(algo = "") {
     return_value$parameter_ranges = ranges
   } else {
     # Load parameter data from pre-saved file "parameter_ranges".
-    # See call to load() on top of this file.
+    # See call to readRDS() on top of this file.
     params = parameter_ranges[[algo_name]]
     
     return_value$parameter_ranges = params
