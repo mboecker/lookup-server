@@ -120,6 +120,7 @@ predict_point = function(impl_id, task_id, parameters) {
   return_value$nearest_setup = setup_id
   return_value$nearest_setup_distance = first_distance
   return_value$nearest_setup_real_values = nearest_point_data
+  return_value$impl_id_used = impl_id
   
   return(return_value)
 }
@@ -147,13 +148,24 @@ lookup <- function(...) {
     return(json_error(error_msg, more=list(missing_args = "algo")))
   }
   
-  impl_id = as.numeric(ls[["algo"]])
+  impl_id = ls[["algo"]]
   ls[["algo"]] = NULL
 
-  # Check, if algorithm is correctly formed.
-  if(!testInt(impl_id)) {
-    error_msg = "Please give the machine learning algorithm you want to use in numeric form (implementation_id)."
-    return(json_error(error_msg, more=list(malformed_args = "algo")))
+  # If the algo argument is not numeric, it is treated as an algorithm name instead.
+  # We then look up the database for the correct algo_ids.
+  if(!testInt(as.numeric(impl_id))) {
+    algo_name = dbEscapeStrings(con, as.character(impl_id))
+    sql.exp = paste0("SELECT id FROM implementation WHERE name = '", algo_name, "'")
+    result = dbGetQuery(con, sql.exp)
+    
+    if(dim(result)[1] == 0) {
+      error_msg = "There is no algorithm in the database with this name."
+      return(json_error(error_msg))
+    }
+    
+    impl_id = as.numeric(c(simplify2array(result)))
+  } else {
+    impl_id = as.numeric(impl_id)
   }
   
   # Check, if task is given.
@@ -176,12 +188,25 @@ lookup <- function(...) {
     return(json_error(error_msg))
   }
 
-  result = predict_point(impl_id, task_id, ls)
+  result = lapply(impl_id, function(algo_id) {
+    predict_point(algo_id, task_id, ls)
+  })
+  
+  result = result[unlist(lapply(result, function(r) !is.null(r$nearest_setup_distance)))]
+  
+  if(length(result) == 0) {
+    error_msg = "No fitting points were found in the database."
+    return(json_error(error_msg))
+  }
+  
+  best = which.min(unlist(lapply(result, function(r) r$nearest_setup_distance)))
+  result = result[[best]]
   
   if(is.null(result$error)) {
     response = list(performance = result$performance,
                   distance = result$nearest_setup_distance,
                   nearest_setup = list(id = result$nearest_setup,
+                                       impl_id = result$impl_id_used,
                                        values = result$nearest_setup_real_values))
   } else {
     response = list(error = result$error)
