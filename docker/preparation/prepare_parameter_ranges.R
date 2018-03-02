@@ -16,6 +16,10 @@ parameters = function() {
   raw_data = getMultipleLearners()
   names(raw_data) = extractSubList(raw_data, element = c("learner", "id"))
   raw_data = extractSubList(raw_data, "param.set", simplify = FALSE)
+  # manually add inverse
+  raw_data$classif.glmnet$pars$lambda$trafo.inverse = function(x) log2(x)
+  raw_data$classif.glmnet$pars$lambda$trafo.inverse.sql = "LOG2(%s)"
+  # FIXME: Continue with the others
   return(raw_data)
 }
 

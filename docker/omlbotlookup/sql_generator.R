@@ -5,10 +5,7 @@ generate_query = function(task_id, input_ids, xs) {
   
   # This function will generate distinct names for use in the SQL query for the first, second, .. parameter
   generate_identifier = function(n) {
-    # TODO: generalize this to unlimited names. hashing of 1:n or something?
-    names = c("first", "second", "third", "forth", "fifth","sixth", "seventh", "eighth", "ninth", "tenth")
-    names = append(names, paste0("tenthplus", names))
-    return(names[n])
+    paste0("p", seq_len(n))
   }
   
   # This function will generate a function to compute the euclidian distance between all points
@@ -45,6 +42,9 @@ generate_query = function(task_id, input_ids, xs) {
     # is_numeric(input_id)
     # is_numeric(x)
     if (!is.na(suppressWarnings(as.numeric(x)))) {
+      # FIXME: Trafo: 
+      # value.trafo = sprintf(param$trafo.inverse.sql, "value")
+      # value.x = sprintf(param$trafo.inverse.sql, x)
       return(paste0("SELECT setup, value, ABS(value - ", x, ")
                     AS distance
                     FROM input_setting
