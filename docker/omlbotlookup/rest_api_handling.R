@@ -1,5 +1,6 @@
 library(RMySQL)
 library(checkmate)
+library(ParamHelpers)
 
 mysql_username = "root"
 mysql_password = ""
@@ -261,7 +262,7 @@ algos <- function(task = "") {
   return(list(possible_algo_ids = impl_ids, algorithm_names = impl_names))
 }
 
-# List all possible algorithm ids for the given task.
+# List all possible parameters for given algorithm
 #* @serializer unboxedJSON
 #* @get /parameters
 parameters <- function(algo = "") {
@@ -328,7 +329,7 @@ parameters <- function(algo = "") {
     # See call to readRDS() on top of this file.
     params = parameter_ranges[[algo_name]]
     
-    return_value$parameter_ranges = params
+    return_value$parameter_ranges = params$pars
   }
   
   return(return_value)
