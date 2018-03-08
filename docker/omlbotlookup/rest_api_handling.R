@@ -190,7 +190,15 @@ lookup <- function(...) {
     error_msg = "Please supply the parameters you want to set for the algorithm."
     return(json_error(error_msg))
   }
+  
+  # Load needed parameters for this algorithm from the parameter_ranges file.
+  needed_params = parameters(impl_id)$params
 
+  if(length(needed_params) != length(ls)) {
+    error_msg = paste0("You didn't give the right amount of parameters. You gave ", length(ls), ", but the algorithm needs ", length(needed_params))
+    return(json_error(error_msg, more=list(needed_params = needed_params)))
+  }
+  
   result = lapply(impl_id, function(algo_id) {
     predict_point(algo_id, task_id, ls)
   })
