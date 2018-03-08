@@ -324,7 +324,7 @@ parameters <- function(algo = "") {
       ranges[[i]] = list(lower = mins[i,], upper = maxs[i,])
     }
     
-    return_value$parameter_ranges = ranges
+    return_value$params = ranges
   } else {
     # Load parameter data from pre-saved file "parameter_ranges".
     # See call to readRDS() on top of this file.
