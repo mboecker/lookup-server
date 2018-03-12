@@ -17,3 +17,10 @@ callShScript = function(skript) {
   )
 }
 
+assertConnected = function() {
+  if (is.null(omlTuneBenchR$connection)) {
+    stop("No connection!")
+  } else {
+    invisible(TRUE)
+  }
+}

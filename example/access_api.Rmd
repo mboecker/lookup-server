@@ -20,6 +20,7 @@ server.url = "http://localhost:8746"
 param = list(algo = 5965, task = 3, num.trees = 100)
 httr.res = httr::GET(server.url, query = param, httr::accept_json())
 res = httr::content(httr.res)
+res
 
 # We return the performance estimate for your setup.
 performance = res$performance

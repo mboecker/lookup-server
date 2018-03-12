@@ -5,7 +5,7 @@
 
 omlTuneBenchR = new.env(parent = emptyenv())
 omlTuneBenchR$debug = FALSE
-omlTuneBenchR$adress.default = "localhost:8746"
+omlTuneBenchR$adress.default = "http://localhost:8746"
 omlTuneBenchR$adress = NULL # values different from NULL mena that the server is started and reachable under this adress
 
 .onLoad = function(libname, pkgname) {
@@ -13,4 +13,5 @@ omlTuneBenchR$adress = NULL # values different from NULL mena that the server is
     debugme::debugme()
     omlTuneBenchR$debug = TRUE
   }
+  omlTuneBenchR$parameter_ranges = readRDS(system.file("docker/omlbotlookup/parameter_ranges.Rds", package = "omlTuneBenchR"))
 }
