@@ -4,9 +4,26 @@
 #' @export
 startOmlTuneServer = function() {
   # check if server already runs
-  if (checkIfTuneServerIsUp(omlTuneBenchR$adress.default)) {
-    error("Server is already running!")
+  if (checkIfTuneServerIsUp(omlTuneBenchR$adress.default, timeout = 1)) {
+    message("Server is already running!")
+  } else {
+    # check if a stopped container exists
+    out = callShScript("checkstopped-omlbotlookup.sh")
+    if (out$success) {
+      message(sprintf("An exisiting container (%s) gets started!", out$output))
+      out = callShScript("start-omlbotlookup.sh")
+      if (!out$success) {
+        stop(sprintf("Could not start existing container! Last output: %s", out$output))
+      }
+    } else {
+      # we have to run new container
+      message("Run a new container!")
+      out = callShScript("run-omlbotlookup.sh")
+      if (!out$success) {
+        stop(sprintf("Could not run new container! Last output: %s", out$output))
+      }
+    }
   }
-  # 
-  connectToOmlTuneServer(timeout = 60)
+  # set adress to local (which should be the default)
+  connectToOmlTuneServer(omlTuneBenchR$adress.default, timeout = 120)
 }
