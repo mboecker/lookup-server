@@ -15,12 +15,35 @@ source("https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botSetLearn
 parameters = function() {
   raw_data = getMultipleLearners()
   names(raw_data) = extractSubList(raw_data, element = c("learner", "id"))
-  raw_data = extractSubList(raw_data, "param.set", simplify = FALSE)
+  bot.par.sets = extractSubList(raw_data, "param.set", simplify = FALSE)
+  
+  # we need the defaults of the learners because they are missing in the OpenML Database
+  lrn.par.sets = extractSubList(raw_data, c("learner", "par.set"), simplify = FALSE)
+  lrn.par.defs = lapply(lrn.par.sets, getDefaults)
+  addDefaults = function(par.set, defs) {
+    for (n in intersect(names(par.set$pars), names(defs))) {
+      par.set$pars[[n]]$default = defs[[n]]
+      par.set$pars[[n]]$has.default = TRUE
+    }
+    return(par.set)
+  }
+  bot.par.sets = Map(addDefaults, bot.par.sets, lrn.par.defs)
+  
   # manually add inverse
-  raw_data$classif.glmnet$pars$lambda$trafo.inverse = function(x) log2(x)
-  raw_data$classif.glmnet$pars$lambda$trafo.inverse.sql = "LOG2(%s)"
-  # FIXME: Continue with the others
-  return(raw_data)
+  for (n.lrn in names(bot.par.sets)) {
+    for (n.par in names(bot.par.sets[[n.lrn]]$pars)) {
+      trafo = bot.par.sets[[n.lrn]]$pars[[n.par]]$trafo
+      if (!is.null(trafo)) {
+        if (all.equal(trafo, function(x) 2^x)) {
+          bot.par.sets[[n.lrn]]$pars[[n.par]]$trafo.inverse = function(x) log2(x)
+          bot.par.sets[[n.lrn]]$pars[[n.par]]$trafo.inverse.sql = "LOG2(%s)"
+        } else {
+          stop("Trafo not cought")
+        }
+      }
+    }
+  }
+  return(bot.par.sets)
 }
 
 # Generate parameter_ranges data.
