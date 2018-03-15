@@ -138,5 +138,21 @@ get_algo_name_for_algo_id = function(algo_id) {
 #'
 #' @return An estimate for the expected performance of this algorithm on this task with the given parameters.
 get_performance_estimation = function(algo_ids, task_id, parameters) {
+  impl_ids_as_string = paste0(algo_ids, collapse = ", ")
+  
+  db_entries = lapply(names(parameters), function(parameter_name) {
+    sql.exp = paste0("SELECT input_setting.setup, input.implementation_id, input.name, input_setting.value
+                      FROM input
+                      JOIN input_setting ON input_setting.input_id = input.id
+                      JOIN run ON run.setup = input_setting.setup
+                      WHERE input.name = '", parameter_name,"'
+                      AND task_id = ", task_id, "
+                      AND input.implementation_id IN (", impl_ids_as_string ,");");
+    result = dbGetQuery(con, sql.exp)
+    result
+  })
+  
+  
+  
   return(0.5491)
 }
