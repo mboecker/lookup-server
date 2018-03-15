@@ -71,6 +71,11 @@ get_algos_for_task = function(task_id) {
   # Run query.
   result = dbGetQuery(con, sql.exp)
   
+  if(dim(result)[1] == 0) {
+    warning("The given task (task_id = ",task_id,") was not found in the database.")
+    return(c())
+  }
+  
   # Group by name.
   d = as.list(aggregate(implementation_id ~ name, result, append, c()))
   return_value = d$implementation_id
