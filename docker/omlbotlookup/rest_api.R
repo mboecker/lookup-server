@@ -1,0 +1,114 @@
+source("helper.R")
+source("paramToJSONList.R")
+
+########################################################################################################################
+
+#* @serializer unboxedJSON
+#* @get /
+estimate_performance = function(...) {
+  # Get request parameters as named list.
+  ls = as.list(match.call())
+  
+  # Remove first three entries (because they're not useful).
+  ls[0:3] = NULL
+
+  task_id = ls$task
+  algo = ls$algo
+  
+  ls["task"] = NULL
+  ls["algo"] = NULL
+  
+  parameters = ls
+  
+  if(is.null(task_id) || !is_number(task_id)) {
+    err_msg = "Please give the task argument as a number."
+    return(json_error(err_msg))
+  }
+  
+  if(is.null(algo)) {
+    err_msg = "Please give the algo argument."
+    return(json_error(err_msg))
+  }
+  
+  # Find algorithm_name / algorithm_ids
+  if(is_number(algo)) {
+    algo_ids = algo
+    algo_name = get_algo_name_for_algo_id(algo_ids)
+  } else {
+    algo_ids = get_algo_ids_for_algo_name(algo)
+    algo_name = algo
+  }
+  
+  if(length(algo_ids) == 0) {
+    return(json_error("No such algorithm was found in the database."))
+  }
+  
+  # Check needed parameters
+  needed_parameters = get_params_for_algo(algo_name)
+  
+  # Lookup performance in database
+  result = get_performance_estimation(algo_ids, task_id, parameters)
+
+  # Return result
+  return_value = list()
+  return(return_value)
+}
+
+########################################################################################################################
+
+# List all possible tasks.
+#* @get /tasks
+tasks = function() {
+  all_task_ids = get_possible_task_ids()
+  return(list(possible_task_ids = all_task_ids))
+}
+
+########################################################################################################################
+
+# List all possible parameters for given algorithm
+#* @serializer unboxedJSON
+#* @get /parameters
+parameters = function(algo) {
+  if(length(algo) == 0) {
+    error_msg = "Please supply the parameter 'algo' for which you want the parameter list."
+    return(json_error(error_msg))
+  }
+  
+  if(is_number(algo)) {
+    algo_name = get_algo_name_for_algo_id(algo)
+    
+    if(length(algo_name) == 0) {
+      error_msg = names(last_warning)[1]
+      return(json_error(error_msg))
+    }
+  } else {
+    algo_name = algo
+  }
+  
+  params = get_params_for_algo(algo_name)
+  
+  if(length(params) == 0) {
+    error_msg = paste0("No parameter data found for algorithm '", algo_name, "'.")
+    return(json_error(error_msg))
+  }
+  
+  return(list(params = params))
+}
+
+########################################################################################################################
+
+# List all possible algorithm ids for the given task.
+#* @serializer unboxedJSON
+#* @get /algos
+algos <- function(task_id) {
+  return_value = list()
+  
+  if(length(task_id) == 0 || !is_number(task_id)) {
+    error_msg = "Please supply the parameter 'task_id' for which you want the algorithm list as a number."
+    return(json_error(error_msg))
+  }
+  
+  possible_algos = get_algos_for_task(task_id)
+  
+  return(list(possible_algo_names = c(), possible_algo_ids = c()))
+}
