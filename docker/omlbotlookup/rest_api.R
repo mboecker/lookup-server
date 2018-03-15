@@ -1,3 +1,4 @@
+source("data_access.R")
 source("helper.R")
 source("paramToJSONList.R")
 
@@ -5,7 +6,7 @@ source("paramToJSONList.R")
 
 #* @serializer unboxedJSON
 #* @get /
-estimate_performance = function(...) {
+rest_estimate_performance = function(...) {
   # Get request parameters as named list.
   ls = as.list(match.call())
   
@@ -58,7 +59,7 @@ estimate_performance = function(...) {
 
 # List all possible tasks.
 #* @get /tasks
-tasks = function() {
+rest_tasks = function() {
   all_task_ids = get_possible_task_ids()
   return(list(possible_task_ids = all_task_ids))
 }
@@ -67,8 +68,8 @@ tasks = function() {
 
 # List all possible parameters for given algorithm
 #* @serializer unboxedJSON
-#* @get /parameters
-parameters = function(algo) {
+#* @get /params
+rest_params = function(algo = c()) {
   if(length(algo) == 0) {
     error_msg = "Please supply the parameter 'algo' for which you want the parameter list."
     return(json_error(error_msg))
@@ -100,7 +101,9 @@ parameters = function(algo) {
 # List all possible algorithm ids for the given task.
 #* @serializer unboxedJSON
 #* @get /algos
-algos <- function(task_id) {
+rest_algos <- function(task = c()) {
+  task_id = task
+  
   return_value = list()
   
   if(length(task_id) == 0 || !is_number(task_id)) {
@@ -110,5 +113,5 @@ algos <- function(task_id) {
   
   possible_algos = get_algos_for_task(task_id)
   
-  return(list(possible_algo_names = c(), possible_algo_ids = c()))
+  return(list(possible_algo_names = names(possible_algos), possible_algo_ids = c()))
 }
