@@ -48,15 +48,17 @@ generate_query = function(task_id, input_ids, xs) {
       return(paste0("SELECT setup, value, ABS(value - ", x, ")
                     AS distance
                     FROM input_setting
+                    JOIN run ON run.setup = input_setting.setup
                     WHERE input_id = ", input_id, "
-                    AND setup IN (SELECT setup FROM run WHERE task_id = ", task_id, ")
+                    AND task_id = ", task_id, "
                     ORDER BY distance ASC"))
     } else {
       return(paste0("SELECT setup, value, 0 AS distance
                     FROM input_setting
+                    JOIN run ON run.setup = input_setting.setup
                     WHERE input_id = ", input_id, "
                     AND value = '", x, "'
-                    AND setup IN (SELECT setup FROM run WHERE task_id = ", task_id, ")
+                    AND task_id = ", task_id, "
                     ORDER BY distance ASC"))
     }
   }
