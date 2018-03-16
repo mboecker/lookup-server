@@ -126,6 +126,51 @@ get_algo_name_for_algo_id = function(algo_id) {
   return(result)
 }
 
+#' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
+#'
+#' @param algo_ids A vector of algorithm_ids. Typically, this is either one algorithm_id of a specific algorithm implementation or a vector of every algorithm id with a specific name (as acquired by get_algo_ids_for_algo_name(..))
+#' @param task_id A single task_id, on which the algorithm has been run.
+#' @param parameter_names A vector or list of 
+#'
+#' @return A dataframe containing: A column "setup", with the setup_id. A column "<parameter_name>" for every parameter. And one row of data for every setup, that has been run with one of the given algorithms, containing the parameter_data of that run.
+get_parameter_table = function(algo_ids, task_id, parameter_names) {
+  impl_ids_as_string = paste0(algo_ids, collapse = ", ")
+  
+  # TODO:
+  # Replace the code below with one query instead of |parameter_names| queries.
+  # 
+  # Example:
+  # SELECT p1.setup, mtry, `num.trees` FROM 
+  #   (SELECT DISTINCT input_setting.setup, input_setting.value AS mtry FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "mtry" AND task_id = 3 AND uploader = 2702) AS p1
+  # JOIN
+  #   (SELECT DISTINCT input_setting.setup, input_setting.value AS `num.trees` FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "num.trees" AND task_id = 3 AND uploader = 2702) AS p2
+  # ON p1.setup = p2.setup;
+
+  # For each parameter (each entry of `parameters`), run one query against the database to retrieve every evaluated parameter configuration for this parameter.
+  # Save the results in a list (lapply).
+  db_entries = lapply(parameter_names, function(parameter_name) {
+    sql.exp = paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
+                      FROM input
+                      JOIN input_setting ON input_setting.input_id = input.id
+                      JOIN run ON run.setup = input_setting.setup
+                      WHERE input.name = '", parameter_name,"'
+                      AND task_id = ", task_id, "
+                      AND uploader = 2702
+                      AND input.implementation_id IN (", impl_ids_as_string ,");");
+    result = dbGetQuery(con, sql.exp)
+    result
+  })
+  
+  # Merge results by same setup_ids
+  # FIXME: replace for loop by better merge...
+  table = merge(db_entries[[1]], db_entries[[2]], all = TRUE, by = "setup")
+  for (i in 3:length(db_entries)) {
+    table = merge(table, db_entries[[i]], all = TRUE, by = "setup")
+  }
+  
+  return(table)
+}
+
 #' This is the core function of this entire API.
 #' It receives a list of algorithm_ids (which will all be treated equally) and a task_id.
 #' The parameter list specifies the parameters to "set".
@@ -138,34 +183,8 @@ get_algo_name_for_algo_id = function(algo_id) {
 #'
 #' @return An estimate for the expected performance of this algorithm on this task with the given parameters.
 get_performance_estimation = function(algo_ids, task_id, parameters) {
-  impl_ids_as_string = paste0(algo_ids, collapse = ", ")
+  table = get_parameter_table(algo_ids, task_id, names(parameters));
   
-  db_entries = lapply(names(parameters), function(parameter_name) {
-    sql.exp = paste0("SELECT input_setting.setup, input.implementation_id, input.name, input_setting.value
-                      FROM input
-                      JOIN input_setting ON input_setting.input_id = input.id
-                      JOIN run ON run.setup = input_setting.setup
-                      WHERE input.name = '", parameter_name,"'
-                      AND task_id = ", task_id, "
-                      AND input.implementation_id IN (", impl_ids_as_string ,");");
-    result = dbGetQuery(con, sql.exp)
-    result
-  })
-  
-  # Replace column name containing values with parameter name
-  # FIXME: replace for loop by something
-  for (i in 1:length(db_entries)) {
-    names(db_entries[[i]])[4] <- db_entries[[i]][[3]][1]
-    db_entries[[i]][3] = NULL
-  }
-  
-  # Merge results by same setup_ids
-  # FIXME: replace for loop by better merge...
-  table = merge(db_entries[[1]], db_entries[[2]], all = TRUE)
-  for (i in 3:length(db_entries)) {
-    table = merge(table, db_entries[[i]], all = TRUE)
-  }
-
   # Table now contains a big dataframe.
   # The rows are all setups run on the task with this algorithm.
   # The columns represent different parameters.
