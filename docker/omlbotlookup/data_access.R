@@ -152,7 +152,28 @@ get_performance_estimation = function(algo_ids, task_id, parameters) {
     result
   })
   
+  # Replace column name containing values with parameter name
+  # FIXME: replace for loop by something
+  for (i in 1:length(db_entries)) {
+    names(db_entries[[i]])[4] <- db_entries[[i]][[3]][1]
+    db_entries[[i]][3] = NULL
+  }
   
+  # Merge results by same setup_ids
+  # FIXME: replace for loop by better merge...
+  table = merge(db_entries[[1]], db_entries[[2]], all = TRUE)
+  for (i in 3:length(db_entries)) {
+    table = merge(table, db_entries[[i]], all = TRUE)
+  }
+
+  # Table now contains a big dataframe.
+  # The rows are all setups run on the task with this algorithm.
+  # The columns represent different parameters.
+  # The column names represent the parameter name.
+  # TODO: Fill in defaults for NAs
+  # TODO: Calculate euclidean distance for every row
+  # TODO: Sort by euclidean distance
+  # TODO: Return point with shortest distance
   
   return(0.5491)
 }
