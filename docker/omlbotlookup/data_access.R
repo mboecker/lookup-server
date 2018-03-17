@@ -1,5 +1,7 @@
 library(RMySQL)
 
+source("paramToJSONList.R")
+
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
@@ -171,6 +173,20 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
   return(table)
 }
 
+get_parameter_default = function(algo_name, param_name) {
+  params = get_params_for_algo(algo_name)
+  
+  # TODO: Access parameter default here and return it.
+  # params[[param_name]]
+}
+
+replace_na_with_defaults = function(table, algo_name, parameter_names) {
+  for(parameter_name in parameter_names) {
+    # TODO: uncomment this line, if get_parameter_default() is implemented
+    # table$parameter_name[is.na(table$parameter_name)] = get_parameter_default(algo_name, parameter_name);
+  }
+}
+
 #' This is the core function of this entire API.
 #' It receives a list of algorithm_ids (which will all be treated equally) and a task_id.
 #' The parameter list specifies the parameters to "set".
@@ -182,14 +198,16 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
 #' @param parameters A named list of the form list(parameter_name = parameter_value, parameter_name = parameter_value)
 #'
 #' @return An estimate for the expected performance of this algorithm on this task with the given parameters.
-get_performance_estimation = function(algo_ids, task_id, parameters) {
-  table = get_parameter_table(algo_ids, task_id, names(parameters));
-  
+get_performance_estimation = function(algo_ids, algo_name, task_id, parameters) {
   # Table now contains a big dataframe.
   # The rows are all setups run on the task with this algorithm.
   # The columns represent different parameters.
   # The column names represent the parameter name.
-  # TODO: Fill in defaults for NAs
+  table = get_parameter_table(algo_ids, task_id, names(parameters));
+  
+  # Fill in defaults for NAs
+  replace_na_with_defaults(table, names(parameters));
+  
   # TODO: Calculate euclidean distance for every row
   # TODO: Sort by euclidean distance
   # TODO: Return point with shortest distance

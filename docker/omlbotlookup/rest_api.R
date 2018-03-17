@@ -1,6 +1,5 @@
 source("data_access.R")
 source("helper.R")
-source("paramToJSONList.R")
 
 ########################################################################################################################
 
@@ -48,7 +47,7 @@ rest_estimate_performance = function(...) {
   needed_parameters = get_params_for_algo(algo_name)
   
   # Lookup performance in database
-  result = get_performance_estimation(algo_ids, task_id, parameters)
+  result = get_performance_estimation(algo_ids, algo_name, task_id, parameters)
 
   # Return result
   return_value = list()
