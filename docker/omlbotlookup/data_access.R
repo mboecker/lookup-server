@@ -208,6 +208,7 @@ get_performance_estimation = function(algo_ids, algo_name, task_id, parameters) 
   # Fill in defaults for NAs
   replace_na_with_defaults(table, names(parameters));
   
+  # TODO: Apply inverse trafo for every column individually
   # TODO: Calculate euclidean distance for every row
   # TODO: Sort by euclidean distance
   # TODO: Return point with shortest distance
