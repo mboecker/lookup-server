@@ -1,6 +1,7 @@
 library(RMySQL)
 
 source("paramToJSONList.R")
+source("helper.R")
 
 # Declare database credentials
 mysql_username = "root"
@@ -138,12 +139,31 @@ get_algo_name_for_algo_id = function(algo_id) {
 get_parameter_table = function(algo_ids, task_id, parameter_names) {
   impl_ids_as_string = paste0(algo_ids, collapse = ", ")
   
+  generate_sql_query = function() {
+    generate_parameter_query = function(parameter_name) {
+      paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
+                      FROM input
+                      JOIN input_setting ON input_setting.input_id = input.id
+                      JOIN run ON run.setup = input_setting.setup
+                      WHERE input.name = '", parameter_name,"'
+                      AND task_id = ", task_id, "
+                      AND uploader = 2702
+                      AND input.implementation_id IN (", impl_ids_as_string ,")")
+    }
+    selects = paste0("`" ,parameter_names, "`", collapse = ", ")
+    inner_selects = sapply(parameter_names, generate_parameter_query)
+    inner_selects = paste0("(", inner_selects, ") AS p", seq_len(length(inner_selects)))
+    inner_selects[-1] = paste0(inner_selects[-1], " ON p",1:(length(inner_selects)-1),".setup = p",2:length(inner_selects),".setup")
+    inner_selects = paste0(inner_selects, collapse = " JOIN ")
+    paste0("SELECT p1.setup, ", selects, " FROM ", inner_selects)
+  }
+  
   # TODO:
   # Replace the code below with one query instead of |parameter_names| queries.
   # 
   # Example:
-  # SELECT p1.setup, mtry, `num.trees` FROM 
-  #   (SELECT DISTINCT input_setting.setup, input_setting.value AS mtry FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "mtry" AND task_id = 3 AND uploader = 2702) AS p1
+  # SELECT p1.setup, `mtry`, `num.trees` FROM 
+  #   (SELECT DISTINCT input_setting.setup, input_setting.value AS `mtry`` FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "mtry" AND task_id = 3 AND uploader = 2702) AS p1
   # JOIN
   #   (SELECT DISTINCT input_setting.setup, input_setting.value AS `num.trees` FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "num.trees" AND task_id = 3 AND uploader = 2702) AS p2
   # ON p1.setup = p2.setup;
@@ -158,7 +178,7 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
                       WHERE input.name = '", parameter_name,"'
                       AND task_id = ", task_id, "
                       AND uploader = 2702
-                      AND input.implementation_id IN (", impl_ids_as_string ,");");
+                      AND input.implementation_id IN (", impl_ids_as_string ,");")
     result = dbGetQuery(con, sql.exp)
     result
   })
