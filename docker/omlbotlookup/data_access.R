@@ -197,8 +197,8 @@ replace_na_with_defaults = function(table, algo_name, parameter_names) {
 #' @param task_id A task id, given in numeric form.
 #' @param parameters A named list of the form list(parameter_name = parameter_value, parameter_name = parameter_value)
 #'
-#' @return An estimate for the expected performance of this algorithm on this task with the given parameters.
-get_performance_estimation = function(algo_ids, algo_name, task_id, parameters) {
+#' @return A vector of setup ids of the nearest points to the given parameters in the database.
+get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   # Table now contains a big dataframe.
   # The rows are all setups run on the task with this algorithm.
   # The columns represent different parameters.
@@ -206,12 +206,65 @@ get_performance_estimation = function(algo_ids, algo_name, task_id, parameters) 
   table = get_parameter_table(algo_ids, task_id, names(parameters));
   
   # Fill in defaults for NAs
-  replace_na_with_defaults(table, names(parameters));
+  replace_na_with_defaults(table, algo_name, names(parameters));
+  
+  # FIXME: replace this
+  table[["replace"]][is.na(table[["replace"]])] = TRUE
   
   # TODO: Apply inverse trafo for every column individually
-  # TODO: Calculate euclidean distance for every row
-  # TODO: Sort by euclidean distance
-  # TODO: Return point with shortest distance
   
-  return(0.5491)
+  
+  # Calculate euclidean distance for every row
+  for(parameter_name in names(parameters)) {
+    if(testInt(parameters[[parameter_name]])) {
+      # Calculate |database_value - our_value| for every row and parameter.
+      table[[parameter_name]] = (as.numeric(table[[parameter_name]]) - as.numeric(parameters[[parameter_name]])) ** 2
+    } else {
+      # We subset the table to remove the factorial parameters, which are not equal to the request.
+      table = table[table[[parameter_name]] == parameters[[parameter_name]],]
+      
+      # As the "distance" to this parameter has been "evaluated", we can remove it from the table, because we can't sort by it.
+      table[[parameter_name]] = NULL
+    }
+  }
+  
+  # No suitable points were found.
+  if(dim(table)[1] == 0) {
+    return(NULL)
+  }
+
+  # Sum squared distance and square-root it.
+  table[["sum_distance"]] = sqrt(rowSums(table[,-1]))
+  
+  # Remove NAs
+  table = table[complete.cases(table),]
+  
+  # Sort by euclidean distance
+  table = table[order(table$sum_distance),]
+  
+  # Return every point with the lowest distance
+  nearest_distance = table$sum_distance[1]
+  setup_ids = table$setup[table$sum_distance == nearest_distance];
+  return(setup_ids)
+}
+
+get_setup_data = function(setup_ids) {
+  sql.exp = paste0("SELECT setup, input.implementation_id, input.name, input_setting.value
+                    FROM input_setting JOIN input ON input.id = input_setting.input_id
+                    WHERE setup IN (",paste0(setup_ids,collapse=", "),")")
+  result = dbGetQuery(con, sql.exp)
+  
+  # Re-format data
+  return_value = as.list(unique(result$setup))
+  names(return_value) = unique(result$setup)
+  
+  return_value = lapply(return_value, function(setup_id) {
+    rows = result[result$setup == setup_id,-1]
+    impl_id = rows[[1]][1]
+    params = as.list(rows$value)
+    names(params) = rows$name
+    return(list(impl_id = impl_id, params = params))
+  })
+  
+  return(return_value)
 }

@@ -1,3 +1,5 @@
+library("checkmate")
+
 is_number = function(x) {
   testInt(suppressWarnings(as.numeric(x)))
 }
