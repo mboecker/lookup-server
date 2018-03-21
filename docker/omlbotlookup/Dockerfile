@@ -7,7 +7,7 @@ RUN apt-get install -y r-base-dev sudo curl git libcurl4-openssl-dev libssl-dev 
 
 RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('stringi','plumber','RMySQL', 'checkmate', 'ParamHelpers'));"
 
-COPY parameter_ranges.Rds sql_generator.R rest_api_handling.R rest_server.R startup.sh /root/
+COPY data_access.R helper.R parameter_ranges.Rds paramToJSONList.R rest_api.R rest_api_handling.R rest_server.R sql_generator.R startup.sh /root/
 
 EXPOSE 8000
 
