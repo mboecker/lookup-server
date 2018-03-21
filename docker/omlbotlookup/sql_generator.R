@@ -5,7 +5,7 @@ generate_query = function(task_id, input_ids, xs) {
   
   # This function will generate distinct names for use in the SQL query for the first, second, .. parameter
   generate_identifier = function(n) {
-    paste0("p", seq_len(n))
+    paste0("p", n)
   }
   
   # This function will generate a function to compute the euclidian distance between all points
@@ -23,7 +23,7 @@ generate_query = function(task_id, input_ids, xs) {
     }
     
     names = generate_identifier(1:n)
-    r = "first.setup = second.setup"
+    r = "p1.setup = p2.setup"
     if(n > 2) {
       for (i in 2:(n-1)) {
         name1 = names[i]
@@ -45,7 +45,7 @@ generate_query = function(task_id, input_ids, xs) {
       # FIXME: Trafo: 
       # value.trafo = sprintf(param$trafo.inverse.sql, "value")
       # value.x = sprintf(param$trafo.inverse.sql, x)
-      return(paste0("SELECT setup, value, ABS(value - ", x, ")
+      return(paste0("SELECT input_setting.setup, value, ABS(value - ", x, ")
                     AS distance
                     FROM input_setting
                     JOIN run ON run.setup = input_setting.setup
@@ -53,7 +53,7 @@ generate_query = function(task_id, input_ids, xs) {
                     AND task_id = ", task_id, "
                     ORDER BY distance ASC"))
     } else {
-      return(paste0("SELECT setup, value, 0 AS distance
+      return(paste0("SELECT input_setting.setup, value, 0 AS distance
                     FROM input_setting
                     JOIN run ON run.setup = input_setting.setup
                     WHERE input_id = ", input_id, "
@@ -86,7 +86,7 @@ generate_query = function(task_id, input_ids, xs) {
   # Then, the outer query will order these by euclidean distance and return the 10 nearest rows.
   return(paste0("SELECT
     ", sumterm, " AS sum_distance,
-    first.setup AS setup
+    p1.setup AS setup
     FROM ", generate_subqueries(input_ids, xs), "
     WHERE ", equalsterm, " ORDER BY sum_distance LIMIT 10"))
 }

@@ -2,6 +2,7 @@ library(RMySQL)
 library(checkmate)
 library(ParamHelpers)
 source("paramToJSONList.R")
+source("data_access.R")
 
 mysql_username = "root"
 mysql_password = ""
@@ -45,7 +46,12 @@ predict_point = function(impl_id, task_id, parameters) {
     return_value$error = "Please give task_id as a number.";
     return(return_value)
   }
+  
+  print(parameters)
+  
   parameters = escapeParameterList(con, parameters)
+  
+  print(parameters)
   
   # Load parameter names for this algorithm
   sql.exp = paste0("SELECT id, name FROM input WHERE implementation_id = ", impl_id)
@@ -93,6 +99,7 @@ predict_point = function(impl_id, task_id, parameters) {
   # then, look in input_setting for the input_ids (for the names of parameters) and data on closest point.
   # (This can be loaded into memory)
   sql.exp = generate_query(task_id, parameter_ids_sorted, simplify2array(parameters))
+  cat(sql.exp)
   setup_data = dbGetQuery(con, sql.exp)
   
   if(dim(setup_data)[1] == 0) {
@@ -169,6 +176,7 @@ lookup <- function(...) {
     impl_id = as.numeric(c(simplify2array(result)))
   } else {
     impl_id = as.numeric(impl_id)
+    algo_name = get_algo_name_for_algo_id(impl_id)
   }
   
   # Check, if task is given.
@@ -192,7 +200,7 @@ lookup <- function(...) {
   }
   
   # Load needed parameters for this algorithm from the parameter_ranges file.
-  needed_params = parameters(impl_id)$params
+  needed_params = parameters(algo_name)$params
 
   if(length(needed_params) != length(ls)) {
     error_msg = paste0("You didn't give the right amount of parameters. You gave ", length(ls), ", but the algorithm needs ", length(needed_params))
