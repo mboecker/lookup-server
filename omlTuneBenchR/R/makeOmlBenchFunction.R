@@ -8,11 +8,13 @@
 #' @export
 
 makeOmlBenchFunction = function(learner.name, task.id) {
-  assertString("learner.name")
+  assertString(learner.name)
   assertInt(task.id)
   
   obj.fun = function(x) {
-    httr.res = httr::GET(omlTuneBenchR$adress, query = x, httr::accept_json())
+    query = list(task = task.id, algo = paste0("mlr.", learner.name))
+    query = c(query, as.list(x))
+    httr.res = httr::GET(omlTuneBenchR$connection, query = query, httr::accept_json())
     res = httr::content(httr.res)
     y = res$performance
     attr(y, "extras") = res[setdiff(names(res), "performance")]

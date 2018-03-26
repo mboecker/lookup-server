@@ -14,7 +14,7 @@ connectToOmlTuneServer = function(adress = NULL, timeout = 10L) {
   adress = adress %??% omlTuneBenchR$adress.default
   
   if (!checkIfTuneServerIsUp(adress, timeout)) {
-    stop("Server is not up")
+    stop(sprintf("Server is not reachable under %s", adress))
   }
   # finish as soon as docker is sucessfully and ready to receive
   omlTuneBenchR$connection = adress
