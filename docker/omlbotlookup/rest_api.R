@@ -4,20 +4,10 @@ source("data_access.R")
 
 #* @serializer unboxedJSON
 #* @get /
-rest_estimate_performance = function(...) {
+rest_estimate_performance = function(task, algo, ...) {
   # Get request parameters as named list.
-  ls = as.list(match.call())
-  
-  # Remove first three entries (because they're not useful).
-  ls[0:3] = NULL
-
-  task_id = ls$task
-  algo = ls$algo
-  
-  ls["task"] = NULL
-  ls["algo"] = NULL
-  
-  parameters = ls
+  parameters = as.list(...)
+  task_id = task
   
   if(is.null(task_id) || !is_number(task_id)) {
     err_msg = "Please give the task argument as a number."
@@ -48,9 +38,7 @@ rest_estimate_performance = function(...) {
   # Lookup performance in database
   result = get_performance_estimation(algo_ids, algo_name, task_id, parameters)
 
-  # Return result
-  return_value = list()
-  return(return_value)
+  return(result)
 }
 
 ########################################################################################################################
@@ -67,8 +55,8 @@ rest_tasks = function() {
 # List all possible parameters for given algorithm
 #* @serializer unboxedJSON
 #* @get /params
-rest_params = function(algo = c()) {
-  if(length(algo) == 0) {
+rest_params = function(algo = NULL) {
+  if(is.null(algo)) {
     error_msg = "Please supply the parameter 'algo' for which you want the parameter list."
     return(json_error(error_msg))
   }
@@ -99,19 +87,17 @@ rest_params = function(algo = c()) {
 # List all possible algorithm ids for the given task.
 #* @serializer unboxedJSON
 #* @get /algos
-rest_algos <- function(task = c()) {
+rest_algos <- function(task = NULL) {
   task_id = task
   
-  return_value = list()
-  
-  if(length(task_id) == 0 || !is_number(task_id)) {
+  if(is.null(task_id) || !is_number(task_id)) {
     error_msg = "Please supply the parameter 'task_id' for which you want the algorithm list as a number."
     return(json_error(error_msg))
   }
   
   possible_algos = get_algos_for_task(task_id)
   
-  return(list(possible_algo_names = names(possible_algos), possible_algo_ids = c()))
+  return(list(possible_algo_names = names(possible_algos), possible_algo_ids = numeric(0)))
 }
 
 ########################################################################################################################
