@@ -1,5 +1,6 @@
 library("RMySQL")
 library("FNN")
+library("memoise")
 
 source("paramToJSONList.R")
 source("helper.R")
@@ -201,6 +202,8 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
   }
 }
 
+get_cached_parameter_table = memoise(get_parameter_table)
+
 get_parameter_default = function(algo_name, param_name) {
   params = get_params_for_algo(algo_name)
   
@@ -240,7 +243,7 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   # The rows are all setups run on the task with this algorithm.
   # The columns represent different parameters.
   # The column names represent the parameter name.
-  table = get_parameter_table(algo_ids, task_id, names(parameters));
+  table = get_cached_parameter_table(algo_ids, task_id, names(parameters));
   
   if(is.null(table)) {
     return(NULL)
@@ -257,7 +260,6 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   # Calculate euclidean distance for every row
   for(parameter_name in names(parameters)) {
     if(!is_number(parameters[[parameter_name]])) {
-      print(paste0(parameter_name, " is factorial"))
       # We subset the table to remove the factorial parameters, which are not equal to the request.
       table = table[table[[parameter_name]] == parameters[[parameter_name]],]
       
@@ -278,7 +280,7 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   #table[, -1] = apply(table[,-1,drop=F], MARGIN = 2, FUN = function(X) { X = as.numeric(X); (X - min(X))/diff(range(X)) } )
   
   # find nearest neighbour
-  data = data.matrix(table[,-1])
+  data = apply(data.matrix(table[,-1]), 2, as.numeric)
   query = as.numeric(parameters[names(table)[-1]])
   res = FNN::get.knnx(data = data, query = t(query), k = 1)
   
