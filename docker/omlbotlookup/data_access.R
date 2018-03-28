@@ -1,4 +1,5 @@
-library(RMySQL)
+library("RMySQL")
+library("FNN")
 
 source("paramToJSONList.R")
 source("helper.R")
@@ -139,24 +140,24 @@ get_algo_name_for_algo_id = function(algo_id) {
 get_parameter_table = function(algo_ids, task_id, parameter_names) {
   impl_ids_as_string = paste0(algo_ids, collapse = ", ")
   
-  generate_sql_query = function() {
-    generate_parameter_query = function(parameter_name) {
-      paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
-                      FROM input
-                      JOIN input_setting ON input_setting.input_id = input.id
-                      JOIN run ON run.setup = input_setting.setup
-                      WHERE input.name = '", parameter_name,"'
-                      AND task_id = ", task_id, "
-                      AND uploader = 2702
-                      AND input.implementation_id IN (", impl_ids_as_string ,")")
-    }
-    selects = paste0("`" ,parameter_names, "`", collapse = ", ")
-    inner_selects = sapply(parameter_names, generate_parameter_query)
-    inner_selects = paste0("(", inner_selects, ") AS p", seq_len(length(inner_selects)))
-    inner_selects[-1] = paste0(inner_selects[-1], " ON p",1:(length(inner_selects)-1),".setup = p",2:length(inner_selects),".setup")
-    inner_selects = paste0(inner_selects, collapse = " JOIN ")
-    paste0("SELECT p1.setup, ", selects, " FROM ", inner_selects)
-  }
+  # generate_sql_query = function() {
+  #   generate_parameter_query = function(parameter_name) {
+  #     paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
+  #                     FROM input
+  #                     JOIN input_setting ON input_setting.input_id = input.id
+  #                     JOIN run ON run.setup = input_setting.setup
+  #                     WHERE input.name = '", parameter_name,"'
+  #                     AND task_id = ", task_id, "
+  #                     AND uploader = 2702
+  #                     AND input.implementation_id IN (", impl_ids_as_string ,")")
+  #   }
+  #   selects = paste0("`" ,parameter_names, "`", collapse = ", ")
+  #   inner_selects = sapply(parameter_names, generate_parameter_query)
+  #   inner_selects = paste0("(", inner_selects, ") AS p", seq_len(length(inner_selects)))
+  #   inner_selects[-1] = paste0(inner_selects[-1], " ON p",1:(length(inner_selects)-1),".setup = p",2:length(inner_selects),".setup")
+  #   inner_selects = paste0(inner_selects, collapse = " JOIN ")
+  #   paste0("SELECT p1.setup, ", selects, " FROM ", inner_selects)
+  # }
   
   # TODO:
   # Replace the code below with one query instead of |parameter_names| queries.
@@ -185,25 +186,41 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
   
   # Merge results by same setup_ids
   # FIXME: replace for loop by better merge...
-  table = merge(db_entries[[1]], db_entries[[2]], all = TRUE, by = "setup")
-  for (i in 3:length(db_entries)) {
-    table = merge(table, db_entries[[i]], all = TRUE, by = "setup")
+  if(length(db_entries) >= 2) {
+    table = merge(db_entries[[1]], db_entries[[2]], all = TRUE, by = "setup")
+    
+    if(length(db_entries) >= 3) {
+      for (i in 3:length(db_entries)) {
+        table = merge(table, db_entries[[i]], all = TRUE, by = "setup")
+      }
+    }
+    
+    return(table)
+  } else {
+    return(NULL)
   }
-  
-  return(table)
 }
 
 get_parameter_default = function(algo_name, param_name) {
   params = get_params_for_algo(algo_name)
   
   # TODO: Access parameter default here and return it.
-  # params[[param_name]]
+  return(params[[param_name]]$default)
 }
 
 replace_na_with_defaults = function(table, algo_name, parameter_names) {
   for(parameter_name in parameter_names) {
     # TODO: uncomment this line, if get_parameter_default() is implemented
-    # table$parameter_name[is.na(table$parameter_name)] = get_parameter_default(algo_name, parameter_name);
+    nas = is.na(table$parameter_name)
+    if(length(nas) > 0) {
+      def = get_parameter_default(algo_name, parameter_name)
+      if (is.null(def)) {
+        warning("NA found in parameter table without a default!")
+        return(NULL)
+      } else {
+        table[[parameter_name]][nas] = def
+      }
+    }
   }
 }
 
@@ -225,22 +242,49 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   # The column names represent the parameter name.
   table = get_parameter_table(algo_ids, task_id, names(parameters));
   
+  if(is.null(table)) {
+    return(NULL)
+  }
+  
   # Fill in defaults for NAs
-  replace_na_with_defaults(table, algo_name, names(parameters));
+  # replace_na_with_defaults(table, algo_name, names(parameters));
   
   # FIXME: replace this
   table[["replace"]][is.na(table[["replace"]])] = TRUE
   
   # TODO: Apply inverse trafo for every column individually
   
+  # Calculate euclidean distance for every row
+  for(parameter_name in names(parameters)) {
+    if(!is_number(parameters[[parameter_name]])) {
+      print(paste0(parameter_name, " is factorial"))
+      # We subset the table to remove the factorial parameters, which are not equal to the request.
+      table = table[table[[parameter_name]] == parameters[[parameter_name]],]
+      
+      # As the "distance" to this parameter has been "evaluated", we can remove it from the table, because we can't sort by it.
+      table[[parameter_name]] = NULL
+    }
+  }
+
+  # No suitable points were found.
+  if(dim(table)[1] == 0) {
+    return(NULL)
+  }
+
+  # Remove NAs
+  table = table[complete.cases(table),]
+  
   # scale all values to 0-1
-  table[, names(parameters)] = apply(table[,names(parameters)], MARGIN = 2, FUN = function(X) (X - min(X))/diff(range(X)))
+  #table[, -1] = apply(table[,-1,drop=F], MARGIN = 2, FUN = function(X) { X = as.numeric(X); (X - min(X))/diff(range(X)) } )
   
   # find nearest neighbour
-  res = FNN::get.knnx(data = table[, names(parameters)], query = parameters, k = 1)
-
+  data = data.matrix(table[,-1])
+  query = as.numeric(parameters[names(table)[-1]])
+  res = FNN::get.knnx(data = data, query = t(query), k = 1)
+  
   nearest_distance = res$nn.dist[1,1] #FIXME: We also want to return this value, right?
-  setup_ids = table[res$nn.index[1,1], "setup"]; 
+  setup_ids = table[res$nn.index[1,1], "setup"];
+
   return(setup_ids)
 }
 
