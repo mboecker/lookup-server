@@ -6,7 +6,7 @@ source("data_access.R")
 #* @get /
 rest_estimate_performance = function(task, algo, ...) {
   # Get request parameters as named list.
-  parameters = as.list(match.call())
+  parameters = list(...)
   task_id = task
   
   if(is.null(task_id) || !is_number(task_id)) {
@@ -36,7 +36,7 @@ rest_estimate_performance = function(task, algo, ...) {
   needed_parameters = get_params_for_algo(algo_name)
   
   # Lookup performance in database
-  result = get_performance_estimation(algo_ids, algo_name, task_id, parameters)
+  result = get_nearest_setup(algo_ids, algo_name, task_id, parameters)
 
   return(result)
 }
