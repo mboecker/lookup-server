@@ -4,7 +4,7 @@ source("data_access.R")
 
 #* @serializer unboxedJSON
 #* @get /
-rest_estimate_performance = function(task, algo, ...) {
+rest_estimate_performance = function(res, req, task = NULL, algo = NULL, ...) {
   # Get request parameters as named list.
   parameters = list(...)
   task_id = task
@@ -33,7 +33,7 @@ rest_estimate_performance = function(task, algo, ...) {
   }
   
   # Check needed parameters
-  needed_parameters = get_params_for_algo(algo_name)
+  # needed_parameters = get_params_for_algo(algo_name)
   
   # Lookup performance in database
   result = get_nearest_setup(algo_ids, algo_name, task_id, parameters)
