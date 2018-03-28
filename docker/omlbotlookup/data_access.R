@@ -1,4 +1,5 @@
-library(RMySQL)
+library("RMySQL")
+library("FNN")
 
 source("paramToJSONList.R")
 source("helper.R")
@@ -253,13 +254,10 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   
   # TODO: Apply inverse trafo for every column individually
   
-  
   # Calculate euclidean distance for every row
   for(parameter_name in names(parameters)) {
-    if(is_number(parameters[[parameter_name]])) {
-      # Calculate |database_value - our_value| for every row and parameter.
-      table[[parameter_name]] = (as.numeric(table[[parameter_name]]) - as.numeric(parameters[[parameter_name]])) ** 2
-    } else {
+    if(!is_number(parameters[[parameter_name]])) {
+      print(paste0(parameter_name, " is factorial"))
       # We subset the table to remove the factorial parameters, which are not equal to the request.
       table = table[table[[parameter_name]] == parameters[[parameter_name]],]
       
@@ -267,24 +265,25 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
       table[[parameter_name]] = NULL
     }
   }
-  
+
   # No suitable points were found.
   if(dim(table)[1] == 0) {
     return(NULL)
   }
 
-  # Sum squared distance and square-root it.
-  table[["sum_distance"]] = rowSums(table[,-1,drop=FALSE])
-  
   # Remove NAs
   table = table[complete.cases(table),]
   
-  # Sort by euclidean distance
-  table = table[order(table$sum_distance),]
+  # scale all values to 0-1
+  #table[, -1] = apply(table[,-1,drop=F], MARGIN = 2, FUN = function(X) { X = as.numeric(X); (X - min(X))/diff(range(X)) } )
   
-  # Return every point with the lowest distance
-  nearest_distance = table$sum_distance[1]
-  setup_ids = table$setup[table$sum_distance == nearest_distance];
+  # find nearest neighbour
+  data = data.matrix(table[,-1])
+  query = as.numeric(parameters[names(table)[-1]])
+  res = FNN::get.knnx(data = data, query = t(query), k = 1)
+  
+  nearest_distance = res$nn.dist[1,1] #FIXME: We also want to return this value, right?
+  setup_ids = table[res$nn.index[1,1], "setup"];
   return(setup_ids)
 }
 
