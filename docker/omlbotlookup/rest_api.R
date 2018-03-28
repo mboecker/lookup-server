@@ -6,7 +6,7 @@ source("data_access.R")
 #* @get /
 rest_estimate_performance = function(task, algo, ...) {
   # Get request parameters as named list.
-  parameters = as.list(...)
+  parameters = as.list(match.call())
   task_id = task
   
   if(is.null(task_id) || !is_number(task_id)) {
