@@ -42,7 +42,7 @@ getForbiddenParamFields = function() {
 # @param extended [logical]
 #   include arguments that need special treatment
 getSupportedParamFields = function(extended = FALSE) {
-  res = c("id", "type", "default", "upper", "lower", "values", "tunable", "allow.inf", "len")
+  res = c("id", "type", "default", "upper", "lower", "values", "tunable", "allow.inf", "len","trafo.inverse")
   if (extended)
     res = c(res, "requires", "trafo")
   res

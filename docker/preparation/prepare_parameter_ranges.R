@@ -36,7 +36,6 @@ parameters = function() {
       if (!is.null(trafo)) {
         if (all.equal(trafo, function(x) 2^x)) {
           bot.par.sets[[n.lrn]]$pars[[n.par]]$trafo.inverse = function(x) log2(x)
-          bot.par.sets[[n.lrn]]$pars[[n.par]]$trafo.inverse.sql = "LOG2(%s)"
         } else {
           stop("Trafo not cought")
         }

@@ -185,6 +185,10 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
     result
   })
   
+  if(length(db_entries) == 0) {
+    return(NULL)
+  }
+  
   # Merge results by same setup_ids
   # FIXME: replace for loop by better merge...
   if(length(db_entries) >= 2) {
@@ -195,36 +199,41 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
         table = merge(table, db_entries[[i]], all = TRUE, by = "setup")
       }
     }
-    
-    return(table)
   } else {
-    return(NULL)
+    table = db_entries[[1]]
   }
+  
+  return(table)
 }
 
 get_cached_parameter_table = memoise(get_parameter_table)
 
 get_parameter_default = function(algo_name, param_name) {
   params = get_params_for_algo(algo_name)
-  
-  # TODO: Access parameter default here and return it.
   return(params[[param_name]]$default)
+}
+
+get_inverse_trafo = function(algo_name, param_name) {
+  params = get_params_for_algo(algo_name)
+  return(params[[param_name]]$trafo.inverse)
 }
 
 replace_na_with_defaults = function(table, algo_name, parameter_names) {
   for(parameter_name in parameter_names) {
-    # TODO: uncomment this line, if get_parameter_default() is implemented
-    nas = is.na(table$parameter_name)
-    if(length(nas) > 0) {
+    
+    nas = is.na(table[[parameter_name]])
+    if(any(nas)) {
       def = get_parameter_default(algo_name, parameter_name)
       if (is.null(def)) {
-        warning("NA found in parameter table without a default!")
+        warning(paste0("NA found in parameter table without a default! (Parameter name: ",parameter_name,")"))
         return(NULL)
       } else {
         table[[parameter_name]][nas] = def
       }
     }
   }
+  
+  return(table)
 }
 
 #' This is the core function of this entire API.
@@ -246,19 +255,25 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   table = get_cached_parameter_table(algo_ids, task_id, names(parameters));
   
   if(is.null(table)) {
-    return(NULL)
+    return(list(error = "No suitable points found."))
   }
   
   # Fill in defaults for NAs
-  # replace_na_with_defaults(table, algo_name, names(parameters));
-  
-  # FIXME: replace this
-  table[["replace"]][is.na(table[["replace"]])] = TRUE
-  
-  # TODO: Apply inverse trafo for every column individually
+  table = replace_na_with_defaults(table, algo_name, names(parameters));
+  if(is.null(table)) {
+    return(list(error = "NA found in parameter table without a default!"))
+  }
   
   # Calculate euclidean distance for every row
   for(parameter_name in names(parameters)) {
+    
+    # Try to apply inverse transformation function, if one is set.
+    inverse.trafo = get_inverse_trafo(algo_name, parameter_name)
+    if(!is.null(inverse.trafo)) {
+      parameters[[parameter_name]] = inverse.trafo(as.numeric(parameters[[parameter_name]]))
+      table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
+    }
+    
     if(!is_number(parameters[[parameter_name]])) {
       # We subset the table to remove the factorial parameters, which are not equal to the request.
       table = table[table[[parameter_name]] == parameters[[parameter_name]],]
@@ -287,7 +302,7 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   nearest_distance = res$nn.dist[1,1] #FIXME: We also want to return this value, right?
   setup_ids = table[res$nn.index[1,1], "setup"];
 
-  return(setup_ids)
+  return(list(nearest_setup = setup_ids))
 }
 
 get_setup_data = function(setup_ids) {

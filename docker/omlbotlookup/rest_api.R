@@ -38,7 +38,11 @@ rest_estimate_performance = function(res, req, task = NULL, algo = NULL, ...) {
   # Lookup performance in database
   result = get_nearest_setup(algo_ids, algo_name, task_id, parameters)
 
-  return(result)
+  if(is.null(result$error)) {
+    return(list(nearest_setup = result$nearest_setup))
+  } else {
+    return(list(error = result$error))
+  }
 }
 
 ########################################################################################################################
