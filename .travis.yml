@@ -1,0 +1,16 @@
+language: r
+dist: trusty
+sudo: required
+cache: packages
+services:
+- docker
+r:
+- devel
+r_packages:
+- devtools
+before_install:
+- cd omlTuneBenchR
+before_script:
+- R --no-save <<< 'library("devtools"); document()'
+- bash ../docker/rebuild-omlbotlookup.sh
+- bash ../docker/run-omlbotlookup.sh
