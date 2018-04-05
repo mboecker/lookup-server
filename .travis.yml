@@ -8,6 +8,7 @@ r:
 - devel
 r_packages:
 - devtools
+- roxygen2
 before_install:
 - cd omlTuneBenchR
 before_script:

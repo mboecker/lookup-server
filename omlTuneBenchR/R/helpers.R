@@ -1,6 +1,6 @@
 # Helpers
 
-# @param skript [`character(1)`]
+# @param skript (`character(1)`)
 #  Name of the skript in inst/docker
 callShScript = function(skript) {
   script.file = system.file(file.path("inst/docker", skript), package = "omlTuneBenchR")
