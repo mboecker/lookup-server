@@ -300,9 +300,9 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   res = FNN::get.knnx(data = data, query = t(query), k = 1)
   
   nearest_distance = res$nn.dist[1,1] #FIXME: We also want to return this value, right?
-  setup_ids = table[res$nn.index[1,1], "setup"];
+  setup = as.list(table[res$nn.index[1,1],])
 
-  return(list(nearest_setup = setup_ids))
+  return(list(nearest_setup = setup, distance = nearest_distance))
 }
 
 get_setup_data = function(setup_ids) {
