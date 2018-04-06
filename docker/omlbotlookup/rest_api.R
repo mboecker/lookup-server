@@ -39,7 +39,7 @@ rest_estimate_performance = function(res, req, task = NULL, algo = NULL, ...) {
   result = get_nearest_setup(algo_ids, algo_name, task_id, parameters)
 
   if(is.null(result$error)) {
-    return(list(nearest_setup = result$nearest_setup))
+    return(result)
   } else {
     return(list(error = result$error))
   }
