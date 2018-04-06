@@ -140,6 +140,8 @@ get_algo_name_for_algo_id = function(algo_id) {
 #' @return TRUE, on success and a named list containing $error, on failure
 is_parameter_list_ok = function(algo_name, params) {
   needed_params = get_params_for_algo(algo_name)
+  
+  # Check if any parameters are too much.
   for (parameter_name in names(params)) {
     param_data = needed_params[[parameter_name]]
 
@@ -149,6 +151,7 @@ is_parameter_list_ok = function(algo_name, params) {
     }
   }
   
+  # Check if every parameter is within specifications.
   for (param in needed_params) {
     parameter_name = param$id
     if(is.null(params[[parameter_name]])) {
@@ -159,6 +162,7 @@ is_parameter_list_ok = function(algo_name, params) {
     value = params[[parameter_name]]
     
     if(is.null(param$values)) {
+      # integer parameter:
       if(value < param$lower || value > param$upper) {
         lower = param$lower
         upper = param$upper
@@ -168,6 +172,8 @@ is_parameter_list_ok = function(algo_name, params) {
     }
     else
     {
+      # factorial parameter:
+      
       # TODO: Apply inverse trafo here?
       if(!(value %in% param$values)) {
         values = paste0(param$values, collapse = ", ")
@@ -237,7 +243,7 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
   if(length(db_entries) == 0) {
     return(NULL)
   }
-  
+
   # Merge results by same setup_ids
   # FIXME: replace for loop by better merge...
   if(length(db_entries) >= 2) {
@@ -318,12 +324,13 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
     
     # Try to apply inverse transformation function, if one is set.
     inverse.trafo = get_inverse_trafo(algo_name, parameter_name)
+    
     if(!is.null(inverse.trafo)) {
       parameters[[parameter_name]] = inverse.trafo(as.numeric(parameters[[parameter_name]]))
       table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
     }
     
-    if(!is_number(parameters[[parameter_name]])) {
+    if(!is_float_number(parameters[[parameter_name]])) {
       # We subset the table to remove the factorial parameters, which are not equal to the request.
       table = table[table[[parameter_name]] == parameters[[parameter_name]],]
       
@@ -334,12 +341,12 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
 
   # No suitable points were found.
   if(dim(table)[1] == 0) {
-    return(NULL)
+    return(list(error = "No suitable points were found."))
   }
 
   # Remove NAs
   table = table[complete.cases(table),]
-  
+
   # scale all values to 0-1
   #table[, -1] = apply(table[,-1,drop=F], MARGIN = 2, FUN = function(X) { X = as.numeric(X); (X - min(X))/diff(range(X)) } )
   
@@ -354,6 +361,12 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   return(list(setup_id = setup$setup, distance = nearest_distance))
 }
 
+#' Get data associated with runs of setup "setup_ids" on task "task_id"
+#'
+#' @param task_id The task these setups were run on.
+#' @param setup_ids The setup ids of interest.
+#'
+#' @return A list, with names equal to the setup ids.
 get_setup_data = function(task_id, setup_ids) {
   sql.exp = paste0("SELECT setup, input.implementation_id, input.name, input_setting.value
                     FROM input_setting JOIN input ON input.id = input_setting.input_id
