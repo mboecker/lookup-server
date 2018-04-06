@@ -7,7 +7,7 @@ if [ ! -f /root/already_loaded.lockfile ]; then
 
 	echo "Loading data..."
 	# Load the data from an external source.
-	mysql openml < /mysqldata/database.sql
+  gzip -cd mysqldata/database.sql.gz | mysql openml
 	echo "Data loading finished."
 
 	touch /root/already_loaded.lockfile
