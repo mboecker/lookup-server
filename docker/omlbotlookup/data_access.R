@@ -131,6 +131,55 @@ get_algo_name_for_algo_id = function(algo_id) {
   return(result)
 }
 
+
+#' Checks if the supplied parameter list is correct according to the data stored in parameter_ranges.
+#'
+#' @param algo_name The algorithm name these parameters belong to
+#' @param params A named list containing the parameters and their values
+#'
+#' @return TRUE, on success and a named list containing $error, on failure
+is_parameter_list_ok = function(algo_name, params) {
+  needed_params = get_params_for_algo(algo_name)
+  for (parameter_name in names(params)) {
+    param_data = needed_params[[parameter_name]]
+
+    if(is.null(param_data)) {
+      return_value = list(error = paste0("Parameter ", parameter_name, " is not used by this algorithm."))
+      return(return_value)
+    }
+  }
+  
+  for (param in needed_params) {
+    parameter_name = param$id
+    if(is.null(params[[parameter_name]])) {
+      return_value = list(error = paste0("Parameter ", parameter_name, " is missing."))
+      return(return_value)
+    }
+    
+    value = params[[parameter_name]]
+    
+    if(is.null(param$values)) {
+      if(value < param$lower || value > param$upper) {
+        lower = param$lower
+        upper = param$upper
+        return_value = list(error = paste0("Parameter ", parameter_name, " is numeric and not between ", lower, " and ", upper, ", but ",value,"."))
+        return(return_value)
+      }
+    }
+    else
+    {
+      # TODO: Apply inverse trafo here?
+      if(!(value %in% param$values)) {
+        values = paste0(param$values, collapse = ", ")
+        return_value = list(error = paste0("Parameter ", parameter_name, " is factorial and not any of ", values, ", but ",value,"."))
+        return(return_value)
+      }
+    }
+  }
+  
+  return(TRUE)
+}
+
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
 #' @param algo_ids A vector of algorithm_ids. Typically, this is either one algorithm_id of a specific algorithm implementation or a vector of every algorithm id with a specific name (as acquired by get_algo_ids_for_algo_name(..))

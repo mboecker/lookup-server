@@ -32,8 +32,15 @@ rest_estimate_performance = function(res, req, task = NULL, algo = NULL, ...) {
     return(json_error("No such algorithm was found in the database."))
   }
   
+  if(length(parameters) == 0) {
+    return(json_error("No parameters given."))
+  }
+  
   # Check needed parameters
-  # needed_parameters = get_params_for_algo(algo_name)
+  parameter_status = is_parameter_list_ok(algo_name, parameters)
+  if(!isTRUE(parameter_status)) {
+    return(parameter_status)
+  }
   
   # Lookup performance in database
   result = get_nearest_setup(algo_ids, algo_name, task_id, parameters)
