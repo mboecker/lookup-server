@@ -302,10 +302,10 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   nearest_distance = res$nn.dist[1,1] #FIXME: We also want to return this value, right?
   setup = as.list(table[res$nn.index[1,1],])
 
-  return(list(nearest_setup = setup, distance = nearest_distance))
+  return(list(setup_id = setup$setup, distance = nearest_distance))
 }
 
-get_setup_data = function(setup_ids) {
+get_setup_data = function(task_id, setup_ids) {
   sql.exp = paste0("SELECT setup, input.implementation_id, input.name, input_setting.value
                     FROM input_setting JOIN input ON input.id = input_setting.input_id
                     WHERE setup IN (",paste0(setup_ids,collapse=", "),")")
@@ -320,7 +320,13 @@ get_setup_data = function(setup_ids) {
     impl_id = rows[[1]][1]
     params = as.list(rows$value)
     names(params) = rows$name
-    return(list(impl_id = impl_id, params = params))
+    
+    # Now, we request performance data on the nearest point given by the database.
+    # TODO: find out if function_id 4 is correct.
+    sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source IN (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
+    performance_data = as.numeric(dbGetQuery(con, sql.exp)[1])
+
+    return(list(impl_id = impl_id, params = params, performance=performance_data))
   })
   
   return(return_value)
