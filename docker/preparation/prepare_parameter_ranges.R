@@ -29,6 +29,10 @@ parameters = function() {
   }
   bot.par.sets = Map(addDefaults, bot.par.sets, lrn.par.defs)
   
+  # Manually re-define the default for this "ranger"-parameter, because the new
+  # "ignore" option is not implemented in the database but only in mlr.
+  bot.par.sets$classif.ranger$pars$respect.unordered.factors$default = "FALSE"
+  
   # manually add inverse
   for (n.lrn in names(bot.par.sets)) {
     for (n.par in names(bot.par.sets[[n.lrn]]$pars)) {
