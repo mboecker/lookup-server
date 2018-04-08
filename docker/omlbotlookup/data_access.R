@@ -258,6 +258,17 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
     table = db_entries[[1]]
   }
   
+  if("mtry" %in% parameter_names) {
+    if(sum(is.na(table$mtry)) > 10) {
+      stop("Too many missing values for parameter $mtry. Please report this (with task_id).")
+    } else {
+      # Ignore NAs in ranger$mtry, because it's neither handled in
+      # https://github.com/ja-thomas/OMLbots/blob/master/snapshot_database/database_extraction.R
+      # nor easy to fill in. Anyhow, there shouldn't be many NAs.
+      table = table[complete.cases(table$mtry),]
+    }
+  }
+  
   return(table)
 }
 
