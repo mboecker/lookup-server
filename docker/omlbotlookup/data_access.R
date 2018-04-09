@@ -131,6 +131,61 @@ get_algo_name_for_algo_id = function(algo_id) {
   return(result)
 }
 
+
+#' Checks if the supplied parameter list is correct according to the data stored in parameter_ranges.
+#'
+#' @param algo_name The algorithm name these parameters belong to
+#' @param params A named list containing the parameters and their values
+#'
+#' @return TRUE, on success and a named list containing $error, on failure
+is_parameter_list_ok = function(algo_name, params) {
+  needed_params = get_params_for_algo(algo_name)
+  
+  # Check if any parameters are too much.
+  for (parameter_name in names(params)) {
+    param_data = needed_params[[parameter_name]]
+
+    if(is.null(param_data)) {
+      return_value = list(error = paste0("Parameter ", parameter_name, " is not used by this algorithm."))
+      return(return_value)
+    }
+  }
+  
+  # Check if every parameter is within specifications.
+  for (param in needed_params) {
+    parameter_name = param$id
+    if(is.null(params[[parameter_name]])) {
+      return_value = list(error = paste0("Parameter ", parameter_name, " is missing."))
+      return(return_value)
+    }
+    
+    value = params[[parameter_name]]
+    
+    if(is.null(param$values)) {
+      # integer parameter:
+      if(value < param$lower || value > param$upper) {
+        lower = param$lower
+        upper = param$upper
+        return_value = list(error = paste0("Parameter ", parameter_name, " is numeric and not between ", lower, " and ", upper, ", but ",value,"."))
+        return(return_value)
+      }
+    }
+    else
+    {
+      # factorial parameter:
+      
+      # TODO: Apply inverse trafo here?
+      if(!(value %in% param$values)) {
+        values = paste0(param$values, collapse = ", ")
+        return_value = list(error = paste0("Parameter ", parameter_name, " is factorial and not any of ", values, ", but ",value,"."))
+        return(return_value)
+      }
+    }
+  }
+  
+  return(TRUE)
+}
+
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
 #' @param algo_ids A vector of algorithm_ids. Typically, this is either one algorithm_id of a specific algorithm implementation or a vector of every algorithm id with a specific name (as acquired by get_algo_ids_for_algo_name(..))
@@ -188,7 +243,7 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
   if(length(db_entries) == 0) {
     return(NULL)
   }
-  
+
   # Merge results by same setup_ids
   # FIXME: replace for loop by better merge...
   if(length(db_entries) >= 2) {
@@ -201,6 +256,17 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
     }
   } else {
     table = db_entries[[1]]
+  }
+  
+  if("mtry" %in% parameter_names) {
+    if(sum(is.na(table$mtry)) > 10) {
+      stop("Too many missing values for parameter $mtry. Please report this (with task_id).")
+    } else {
+      # Ignore NAs in ranger$mtry, because it's neither handled in
+      # https://github.com/ja-thomas/OMLbots/blob/master/snapshot_database/database_extraction.R
+      # nor easy to fill in. Anyhow, there shouldn't be many NAs.
+      table = table[complete.cases(table$mtry),]
+    }
   }
   
   return(table)
@@ -269,12 +335,13 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
     
     # Try to apply inverse transformation function, if one is set.
     inverse.trafo = get_inverse_trafo(algo_name, parameter_name)
+    
     if(!is.null(inverse.trafo)) {
       parameters[[parameter_name]] = inverse.trafo(as.numeric(parameters[[parameter_name]]))
       table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
     }
     
-    if(!is_number(parameters[[parameter_name]])) {
+    if(!is_float_number(parameters[[parameter_name]])) {
       # We subset the table to remove the factorial parameters, which are not equal to the request.
       table = table[table[[parameter_name]] == parameters[[parameter_name]],]
       
@@ -285,12 +352,12 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
 
   # No suitable points were found.
   if(dim(table)[1] == 0) {
-    return(NULL)
+    return(list(error = "No suitable points were found."))
   }
 
   # Remove NAs
   table = table[complete.cases(table),]
-  
+
   # scale all values to 0-1
   #table[, -1] = apply(table[,-1,drop=F], MARGIN = 2, FUN = function(X) { X = as.numeric(X); (X - min(X))/diff(range(X)) } )
   
@@ -302,10 +369,16 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   nearest_distance = res$nn.dist[1,1] #FIXME: We also want to return this value, right?
   setup = as.list(table[res$nn.index[1,1],])
 
-  return(list(nearest_setup = setup, distance = nearest_distance))
+  return(list(setup_id = setup$setup, distance = nearest_distance))
 }
 
-get_setup_data = function(setup_ids) {
+#' Get data associated with runs of setup "setup_ids" on task "task_id"
+#'
+#' @param task_id The task these setups were run on.
+#' @param setup_ids The setup ids of interest.
+#'
+#' @return A list, with names equal to the setup ids.
+get_setup_data = function(task_id, setup_ids) {
   sql.exp = paste0("SELECT setup, input.implementation_id, input.name, input_setting.value
                     FROM input_setting JOIN input ON input.id = input_setting.input_id
                     WHERE setup IN (",paste0(setup_ids,collapse=", "),")")
@@ -320,7 +393,13 @@ get_setup_data = function(setup_ids) {
     impl_id = rows[[1]][1]
     params = as.list(rows$value)
     names(params) = rows$name
-    return(list(impl_id = impl_id, params = params))
+    
+    # Now, we request performance data on the nearest point given by the database.
+    # TODO: find out if function_id 4 is correct.
+    sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source IN (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
+    performance_data = as.numeric(dbGetQuery(con, sql.exp)[1])
+
+    return(list(impl_id = impl_id, params = params, performance=performance_data))
   })
   
   return(return_value)
