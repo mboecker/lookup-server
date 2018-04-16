@@ -273,9 +273,28 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
 
 get_cached_parameter_table = memoise(get_parameter_table)
 
-get_parameter_default = function(algo_name, param_name) {
+get_parameter_default = function(algo_name, param_name, task_id) {
   params = get_params_for_algo(algo_name)
-  return(params[[param_name]]$default)
+  def = params[[param_name]]$default
+  #print(param_name)
+  #print(def)
+  
+  # We need to special case these parameters, because they are data-dependent.
+  if(algo_name == "mlr.classif.ranger") {
+    # Extracted from https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botCallWrapper.R, lines 35 and 37.
+    if(param_name == "mtry") {
+      #ncol = get_cached_task_metadata(task_id)$ncol
+      #def = ceiling(def * ncol)
+      #print(def)
+    }
+    if(param_name == "min.node.size") {
+      #nrow = get_cached_task_metadata(task_id)$nrow
+      #def = round(2^(log(nrow, 2) * def))
+      #print(def)
+    }
+  }
+  
+  return(def)
 }
 
 get_inverse_trafo = function(algo_name, param_name) {
@@ -283,12 +302,12 @@ get_inverse_trafo = function(algo_name, param_name) {
   return(params[[param_name]]$trafo.inverse)
 }
 
-replace_na_with_defaults = function(table, algo_name, parameter_names) {
+replace_na_with_defaults = function(table, algo_name, parameter_names, task_id) {
   for(parameter_name in parameter_names) {
     
     nas = is.na(table[[parameter_name]])
     if(any(nas)) {
-      def = get_parameter_default(algo_name, parameter_name)
+      def = get_parameter_default(algo_name, parameter_name, task_id)
       if (is.null(def)) {
         warning(paste0("NA found in parameter table without a default! (Parameter name: ",parameter_name,")"))
         return(NULL)
@@ -324,7 +343,7 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   }
   
   # Fill in defaults for NAs
-  table = replace_na_with_defaults(table, algo_name, names(parameters));
+  table = replace_na_with_defaults(table, algo_name, names(parameters), task_id);
   if(is.null(table)) {
     return(list(error = "NA found in parameter table without a default!"))
   }
