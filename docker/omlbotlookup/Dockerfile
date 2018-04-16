@@ -8,6 +8,9 @@ RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('stringi','plumber'
 RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('devtools'))"
 RUN Rscript -e 'devtools::install_github("r-lib/memoise")'
 
+# FIXME: add this line to above when use_travis is merged
+RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('httr'))"
+
 COPY data_access.R helper.R parameter_ranges.Rds paramToJSONList.R rest_api.R rest_server.R startup.sh /root/
 
 EXPOSE 8000

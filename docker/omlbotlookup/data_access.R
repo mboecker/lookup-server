@@ -1,6 +1,7 @@
 library("RMySQL")
 library("FNN")
 library("memoise")
+library("httr")
 
 source("paramToJSONList.R")
 source("helper.R")
@@ -186,6 +187,24 @@ is_parameter_list_ok = function(algo_name, params) {
   return(TRUE)
 }
 
+#' Retrieves metadata about the task from openml.org
+#'
+#' @param task_id The task of interest
+#'
+#' @return nrow and ncol of the dataset.
+get_task_metadata = function(task_id) {
+  url = paste0("https://www.openml.org/api/v1/json/data/qualities/", task_id)
+  ret = httr::GET(url, httr::accept_json())
+  res = httr::content(ret)
+  
+  qualities = BBmisc::extractSubList(res$data_qualities$quality, "value")
+  names(qualities) = BBmisc::extractSubList(res$data_qualities$quality, "name")
+  
+  return(list(nrow=qualities$NumberOfInstances, ncol = qualities$NumberOfFeatures - 1))
+}
+
+get_cached_task_metadata = memoise(get_task_metadata)
+
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
 #' @param algo_ids A vector of algorithm_ids. Typically, this is either one algorithm_id of a specific algorithm implementation or a vector of every algorithm id with a specific name (as acquired by get_algo_ids_for_algo_name(..))
@@ -196,37 +215,6 @@ is_parameter_list_ok = function(algo_name, params) {
 get_parameter_table = function(algo_ids, task_id, parameter_names) {
   impl_ids_as_string = paste0(algo_ids, collapse = ", ")
   
-  # generate_sql_query = function() {
-  #   generate_parameter_query = function(parameter_name) {
-  #     paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
-  #                     FROM input
-  #                     JOIN input_setting ON input_setting.input_id = input.id
-  #                     JOIN run ON run.setup = input_setting.setup
-  #                     WHERE input.name = '", parameter_name,"'
-  #                     AND task_id = ", task_id, "
-  #                     AND uploader = 2702
-  #                     AND input.implementation_id IN (", impl_ids_as_string ,")")
-  #   }
-  #   selects = paste0("`" ,parameter_names, "`", collapse = ", ")
-  #   inner_selects = sapply(parameter_names, generate_parameter_query)
-  #   inner_selects = paste0("(", inner_selects, ") AS p", seq_len(length(inner_selects)))
-  #   inner_selects[-1] = paste0(inner_selects[-1], " ON p",1:(length(inner_selects)-1),".setup = p",2:length(inner_selects),".setup")
-  #   inner_selects = paste0(inner_selects, collapse = " JOIN ")
-  #   paste0("SELECT p1.setup, ", selects, " FROM ", inner_selects)
-  # }
-  
-  # TODO:
-  # Replace the code below with one query instead of |parameter_names| queries.
-  # 
-  # Example:
-  # SELECT p1.setup, `mtry`, `num.trees` FROM 
-  #   (SELECT DISTINCT input_setting.setup, input_setting.value AS `mtry`` FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "mtry" AND task_id = 3 AND uploader = 2702) AS p1
-  # JOIN
-  #   (SELECT DISTINCT input_setting.setup, input_setting.value AS `num.trees` FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "num.trees" AND task_id = 3 AND uploader = 2702) AS p2
-  # ON p1.setup = p2.setup;
-
-  # For each parameter (each entry of `parameters`), run one query against the database to retrieve every evaluated parameter configuration for this parameter.
-  # Save the results in a list (lapply).
   db_entries = lapply(parameter_names, function(parameter_name) {
     sql.exp = paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
                       FROM input
