@@ -195,12 +195,23 @@ is_parameter_list_ok = function(algo_name, params) {
 get_task_metadata = function(task_id) {
   url = paste0("https://www.openml.org/api/v1/json/data/qualities/", task_id)
   ret = httr::GET(url, httr::accept_json())
-  res = httr::content(ret)
   
-  qualities = BBmisc::extractSubList(res$data_qualities$quality, "value")
+  # No such task
+  if(httr::status_code(ret) != 200) {
+    return(NULL)
+  }
+  
+  # Re-format data
+  res = httr::content(ret)
+  qualities = as.list(BBmisc::extractSubList(res$data_qualities$quality, "value"))
   names(qualities) = BBmisc::extractSubList(res$data_qualities$quality, "name")
   
-  return(list(nrow=qualities$NumberOfInstances, ncol = qualities$NumberOfFeatures - 1))
+  # Extract data
+  nrow = as.numeric(qualities$NumberOfInstances)
+  ncol = as.numeric(qualities$NumberOfFeatures) - 1
+  
+  # Return data
+  return(list(nrow = nrow, ncol = ncol))
 }
 
 get_cached_task_metadata = memoise(get_task_metadata)
