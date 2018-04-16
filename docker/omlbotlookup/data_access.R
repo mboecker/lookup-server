@@ -337,7 +337,6 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
     inverse.trafo = get_inverse_trafo(algo_name, parameter_name)
     
     if(!is.null(inverse.trafo)) {
-      parameters[[parameter_name]] = inverse.trafo(as.numeric(parameters[[parameter_name]]))
       table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
     }
     
