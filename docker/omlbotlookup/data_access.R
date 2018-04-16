@@ -283,14 +283,8 @@ get_parameter_default = function(algo_name, param_name, task_id) {
   if(algo_name == "mlr.classif.ranger") {
     # Extracted from https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botCallWrapper.R, lines 35 and 37.
     if(param_name == "mtry") {
-      #ncol = get_cached_task_metadata(task_id)$ncol
-      #def = ceiling(def * ncol)
-      #print(def)
-    }
-    if(param_name == "min.node.size") {
-      #nrow = get_cached_task_metadata(task_id)$nrow
-      #def = round(2^(log(nrow, 2) * def))
-      #print(def)
+      ncol = get_cached_task_metadata(task_id)$ncol
+      def = floor(sqrt(ncol))
     }
   }
   
@@ -350,6 +344,13 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   
   # Calculate euclidean distance for every row
   for(parameter_name in names(parameters)) {
+    
+    # Transform data.independet params that are not defined like in the data base to data.dependent  
+    data.trafo = parameter_ranges[[algo_name]]$pars[[parameter_name]]$data.trafo
+    if (!is.null(data.trafo)) {
+      dict = get_cached_task_metadata(task_id)
+      parameters[[parameter_name]] = data.trafo(dict = dict, par = parameters)
+    }
     
     # Try to apply inverse transformation function, if one is set.
     inverse.trafo = get_inverse_trafo(algo_name, parameter_name)
