@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/mboecker/lookup-server.svg?branch=master)](https://travis-ci.org/mboecker/lookup-server)
+
 This Docker Image is used with the OpenML database (obtainable here: https://github.com/ja-thomas/OMLbots/tree/master/snapshot_database).
 When optimizing parameters of learning algorithms (hyperparameters), one has to try different hyperparameter configurations on different datasets with a given learning algorithm (and learning task, eg. classification) in order to explore the optimization space. 
 Because this is expensive, this project will allow to interpolate between already-computed performance values for the learning algorithm. 
