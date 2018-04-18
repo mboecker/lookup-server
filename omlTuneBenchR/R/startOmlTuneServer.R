@@ -4,8 +4,13 @@
 #' @export
 startOmlTuneServer = function() {
   # check if server already runs
-  if (checkIfTuneServerIsUp(omlTuneBenchR$adress.default, timeout = 1)) {
-    message("Server is already running!")
+  out = callShScript("checkrunning-omlbotlookup.sh")
+  if (out$success) {
+    if (checkIfTuneServerIsUp(omlTuneBenchR$adress.default, timeout = 120)) {
+      message("Server is already running!")
+    } else {
+      stop("Server is up but not responding!")
+    }
   } else {
     # check if a stopped container exists
     out = callShScript("checkstopped-omlbotlookup.sh")
