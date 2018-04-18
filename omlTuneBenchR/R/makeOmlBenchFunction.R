@@ -12,9 +12,8 @@ makeOmlBenchFunction = function(learner.name, task.id) {
   assertInt(task.id)
   
   obj.fun = function(x) {
-    query = list(task = task.id, algo = learner.name)
-    query = c(query, as.list(x))
-    httr.res = httr::GET(omlTuneBenchR$connection, query = query, httr::accept_json())
+    query = list(task = task.id, algo = learner.name, parameters = as.list(x))
+    httr.res = httr::POST(omlTuneBenchR$connection, query = query, httr::accept_json())
     res = httr::content(httr.res)
     if (!is.null(res$error)) {
       stop(res$error)
