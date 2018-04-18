@@ -61,6 +61,65 @@ rest_estimate_performance = function(res, req, task = NULL, algo = NULL, ...) {
 
 ########################################################################################################################
 
+#* @serializer unboxedJSON
+#* @post /performances
+rest_estimate_performances = function(res, req, task = NULL, algo = NULL, param.table = NULL) {
+  # Get request parameters as named list.
+  param.table = lapply(param.table, type.convert)
+  param.table = as.data.frame(param.table)
+  task_id = task
+  
+  if(is.null(task_id) || !is_number(task_id)) {
+    err_msg = "Please give the task argument as a number."
+    return(json_error(err_msg))
+  }
+  
+  if(is.null(algo)) {
+    err_msg = "Please give the algo argument."
+    return(json_error(err_msg))
+  }
+  
+  # Find algorithm_name / algorithm_ids
+  if(is_number(algo)) {
+    algo_ids = algo
+    algo_name = get_algo_name_for_algo_id(algo_ids)
+  } else {
+    algo_ids = get_algo_ids_for_algo_name(algo)
+    algo_name = algo
+  }
+  
+  if(length(algo_ids) == 0) {
+    return(json_error("No such algorithm was found in the database."))
+  }
+  
+  if(is.null(param.table) == 0) {
+    return(json_error("No parameters given."))
+  }
+  
+  # Check needed parameters
+  parameter_status = is_parameter_list_ok(algo_name, parameters)
+  if(!isTRUE(parameter_status)) {
+    return(parameter_status)
+  }
+  
+  # Lookup performance in database
+  result = get_nearest_setup(algo_ids, algo_name, task_id, parameters)
+  
+  if(is.null(result)) {
+    return(json_error("An error occured."))
+  }
+  
+  if(!is.null(result$error)) {
+    return(list(error = result$error))
+  } else {
+    performance = get_setup_data(task_id, result)
+    performance = performance[[1]]
+    return(append(result, performance))
+  }
+}
+
+########################################################################################################################
+
 # List all possible tasks.
 #* @get /tasks
 rest_tasks = function() {
