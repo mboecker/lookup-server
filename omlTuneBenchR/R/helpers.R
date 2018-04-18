@@ -3,7 +3,7 @@
 # @param skript (`character(1)`)
 #  Name of the skript in inst/docker
 callShScript = function(skript) {
-  script.file = system.file(file.path("inst", "docker", skript), package = "omlTuneBenchR")
+  script.file = system.file(file.path("docker", skript), package = "omlTuneBenchR")
   assertFile(script.file)
   out = suppressWarnings(system(script.file, intern = TRUE))
   status = attr(out, "status")
