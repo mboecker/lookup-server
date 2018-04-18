@@ -2,6 +2,7 @@ library("RMySQL")
 library("FNN")
 library("memoise")
 library("httr")
+library("ParamHelpers")
 
 source("paramToJSONList.R")
 source("helper.R")
@@ -27,12 +28,6 @@ parameter_ranges = readRDS("parameter_ranges.Rds")
 get_params_for_algo = function(algo_name) {
   # Load parameter data from pre-saved file "parameter_ranges".
   # See call to readRDS() on top of this file.
-
-  # Algorithm names in the database have a leading "mlr." in front of their name.
-  # We delete this.
-  if (substring(algo_name, 1, 4) == "mlr.") {
-    algo_name = substring(algo_name, 5)
-  }
     
   if(is.null(parameter_ranges[[algo_name]])) {
     warning(paste0("No parameters found in `parameter_ranges` for algorithm name '", algo_name, "'."))
@@ -102,7 +97,7 @@ get_algo_ids_for_algo_name = function(algo_name) {
   algo_name = dbEscapeStrings(con, as.character(algo_name))
   
   # Request every fitting algo_id.
-  sql.exp = paste0("SELECT id FROM implementation WHERE name = '", algo_name, "'")
+  sql.exp = paste0("SELECT id FROM implementation WHERE name = 'mlr.", algo_name, "'")
   result = dbGetQuery(con, sql.exp)$id
   
   # If there is no result, return an empty vector.
@@ -140,51 +135,16 @@ get_algo_name_for_algo_id = function(algo_id) {
 #'
 #' @return TRUE, on success and a named list containing $error, on failure
 is_parameter_list_ok = function(algo_name, params) {
-  needed_params = get_params_for_algo(algo_name)
-  
-  # Check if any parameters are too much.
-  for (parameter_name in names(params)) {
-    param_data = needed_params[[parameter_name]]
-
-    if(is.null(param_data)) {
-      return_value = list(error = paste0("Parameter ", parameter_name, " is not used by this algorithm."))
-      return(return_value)
-    }
+  assertChoice(algo_name, names(parameter_ranges))
+  par_set = parameter_ranges[[algo_name]]
+  res = tryCatch(isFeasible(par_set, params), error = function(e) e)
+  if (inherits(res, c("try-error", "error"))) {
+    return(list(error = as.character(e)))
+  } else if (!isTRUE(res)) {
+    return(list(error = attr(res, "warning")))
+  } else {
+    return(res)
   }
-  
-  # Check if every parameter is within specifications.
-  for (param in needed_params) {
-    parameter_name = param$id
-    if(is.null(params[[parameter_name]])) {
-      return_value = list(error = paste0("Parameter ", parameter_name, " is missing."))
-      return(return_value)
-    }
-    
-    value = params[[parameter_name]]
-    
-    if(is.null(param$values)) {
-      # integer parameter:
-      if(value < param$lower || value > param$upper) {
-        lower = param$lower
-        upper = param$upper
-        return_value = list(error = paste0("Parameter ", parameter_name, " is numeric and not between ", lower, " and ", upper, ", but ",value,"."))
-        return(return_value)
-      }
-    }
-    else
-    {
-      # factorial parameter:
-      
-      # TODO: Apply inverse trafo here?
-      if(!(value %in% param$values)) {
-        values = paste0(param$values, collapse = ", ")
-        return_value = list(error = paste0("Parameter ", parameter_name, " is factorial and not any of ", values, ", but ",value,"."))
-        return(return_value)
-      }
-    }
-  }
-  
-  return(TRUE)
 }
 
 #' Retrieves metadata about the task from openml.org
@@ -280,7 +240,7 @@ get_parameter_default = function(algo_name, param_name, task_id) {
   #print(def)
   
   # We need to special case these parameters, because they are data-dependent.
-  if(algo_name == "mlr.classif.ranger") {
+  if(algo_name == "classif.ranger") {
     # Extracted from https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botCallWrapper.R, lines 35 and 37.
     if(param_name == "mtry") {
       ncol = get_cached_task_metadata(task_id)$ncol

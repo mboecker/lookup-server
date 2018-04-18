@@ -7,7 +7,7 @@
 getParamSetForOmlLearner(learner.name)
 }
 \arguments{
-\item{learner.name}{\code{\link{character(1)}}
+\item{learner.name}{(\code{character(1)})
 The learner class (e.g. "classif.glmnet")}
 }
 \value{

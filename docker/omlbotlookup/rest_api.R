@@ -7,6 +7,7 @@ source("data_access.R")
 rest_estimate_performance = function(res, req, task = NULL, algo = NULL, ...) {
   # Get request parameters as named list.
   parameters = list(...)
+  parameters = lapply(parameters, type.convert)
   task_id = task
   
   if(is.null(task_id) || !is_number(task_id)) {

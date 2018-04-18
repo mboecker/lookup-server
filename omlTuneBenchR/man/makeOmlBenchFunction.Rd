@@ -7,10 +7,10 @@
 makeOmlBenchFunction(learner.name, task.id)
 }
 \arguments{
-\item{learner.name}{\code{\link{character(1)}}
+\item{learner.name}{(\code{character(1)})
 Defines the learner.}
 
-\item{task.id}{\code{\link{integer(1)}}
+\item{task.id}{(\code{integer(1)})
 Defines the task id the learner is optimized on.}
 }
 \value{
