@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y r-base-dev sudo curl git libcurl4-opens
 
 RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('stringi','plumber','RMySQL', 'checkmate', 'ParamHelpers','FNN','memoise'))"
 
+# FIXME: add this line to above when use_travis is merged
+RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('httr'))"
+
 COPY data_access.R helper.R parameter_ranges.Rds paramToJSONList.R rest_api.R rest_server.R startup.sh /root/
 
 EXPOSE 8000

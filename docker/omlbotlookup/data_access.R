@@ -1,6 +1,7 @@
 library("RMySQL")
 library("FNN")
 library("memoise")
+library("httr")
 
 source("paramToJSONList.R")
 source("helper.R")
@@ -186,6 +187,35 @@ is_parameter_list_ok = function(algo_name, params) {
   return(TRUE)
 }
 
+#' Retrieves metadata about the task from openml.org
+#'
+#' @param task_id The task of interest
+#'
+#' @return nrow and ncol of the dataset.
+get_task_metadata = function(task_id) {
+  url = paste0("https://www.openml.org/api/v1/json/data/qualities/", task_id)
+  ret = httr::GET(url, httr::accept_json())
+  
+  # No such task
+  if(httr::status_code(ret) != 200) {
+    return(NULL)
+  }
+  
+  # Re-format data
+  res = httr::content(ret)
+  qualities = as.list(BBmisc::extractSubList(res$data_qualities$quality, "value"))
+  names(qualities) = BBmisc::extractSubList(res$data_qualities$quality, "name")
+  
+  # Extract data
+  nrow = as.numeric(qualities$NumberOfInstances)
+  ncol = as.numeric(qualities$NumberOfFeatures) - 1
+  
+  # Return data
+  return(list(nrow = nrow, ncol = ncol))
+}
+
+get_cached_task_metadata = memoise(get_task_metadata)
+
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
 #' @param algo_ids A vector of algorithm_ids. Typically, this is either one algorithm_id of a specific algorithm implementation or a vector of every algorithm id with a specific name (as acquired by get_algo_ids_for_algo_name(..))
@@ -196,37 +226,6 @@ is_parameter_list_ok = function(algo_name, params) {
 get_parameter_table = function(algo_ids, task_id, parameter_names) {
   impl_ids_as_string = paste0(algo_ids, collapse = ", ")
   
-  # generate_sql_query = function() {
-  #   generate_parameter_query = function(parameter_name) {
-  #     paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
-  #                     FROM input
-  #                     JOIN input_setting ON input_setting.input_id = input.id
-  #                     JOIN run ON run.setup = input_setting.setup
-  #                     WHERE input.name = '", parameter_name,"'
-  #                     AND task_id = ", task_id, "
-  #                     AND uploader = 2702
-  #                     AND input.implementation_id IN (", impl_ids_as_string ,")")
-  #   }
-  #   selects = paste0("`" ,parameter_names, "`", collapse = ", ")
-  #   inner_selects = sapply(parameter_names, generate_parameter_query)
-  #   inner_selects = paste0("(", inner_selects, ") AS p", seq_len(length(inner_selects)))
-  #   inner_selects[-1] = paste0(inner_selects[-1], " ON p",1:(length(inner_selects)-1),".setup = p",2:length(inner_selects),".setup")
-  #   inner_selects = paste0(inner_selects, collapse = " JOIN ")
-  #   paste0("SELECT p1.setup, ", selects, " FROM ", inner_selects)
-  # }
-  
-  # TODO:
-  # Replace the code below with one query instead of |parameter_names| queries.
-  # 
-  # Example:
-  # SELECT p1.setup, `mtry`, `num.trees` FROM 
-  #   (SELECT DISTINCT input_setting.setup, input_setting.value AS `mtry`` FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "mtry" AND task_id = 3 AND uploader = 2702) AS p1
-  # JOIN
-  #   (SELECT DISTINCT input_setting.setup, input_setting.value AS `num.trees` FROM input JOIN input_setting ON input_setting.input_id = input.id JOIN run ON run.setup = input_setting.setup WHERE input.name = "num.trees" AND task_id = 3 AND uploader = 2702) AS p2
-  # ON p1.setup = p2.setup;
-
-  # For each parameter (each entry of `parameters`), run one query against the database to retrieve every evaluated parameter configuration for this parameter.
-  # Save the results in a list (lapply).
   db_entries = lapply(parameter_names, function(parameter_name) {
     sql.exp = paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
                       FROM input
@@ -274,9 +273,22 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
 
 get_cached_parameter_table = memoise(get_parameter_table)
 
-get_parameter_default = function(algo_name, param_name) {
+get_parameter_default = function(algo_name, param_name, task_id) {
   params = get_params_for_algo(algo_name)
-  return(params[[param_name]]$default)
+  def = params[[param_name]]$default
+  #print(param_name)
+  #print(def)
+  
+  # We need to special case these parameters, because they are data-dependent.
+  if(algo_name == "mlr.classif.ranger") {
+    # Extracted from https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botCallWrapper.R, lines 35 and 37.
+    if(param_name == "mtry") {
+      ncol = get_cached_task_metadata(task_id)$ncol
+      def = floor(sqrt(ncol))
+    }
+  }
+  
+  return(def)
 }
 
 get_inverse_trafo = function(algo_name, param_name) {
@@ -284,12 +296,12 @@ get_inverse_trafo = function(algo_name, param_name) {
   return(params[[param_name]]$trafo.inverse)
 }
 
-replace_na_with_defaults = function(table, algo_name, parameter_names) {
+replace_na_with_defaults = function(table, algo_name, parameter_names, task_id) {
   for(parameter_name in parameter_names) {
     
     nas = is.na(table[[parameter_name]])
     if(any(nas)) {
-      def = get_parameter_default(algo_name, parameter_name)
+      def = get_parameter_default(algo_name, parameter_name, task_id)
       if (is.null(def)) {
         warning(paste0("NA found in parameter table without a default! (Parameter name: ",parameter_name,")"))
         return(NULL)
@@ -325,7 +337,7 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   }
   
   # Fill in defaults for NAs
-  table = replace_na_with_defaults(table, algo_name, names(parameters));
+  table = replace_na_with_defaults(table, algo_name, names(parameters), task_id);
   if(is.null(table)) {
     return(list(error = "NA found in parameter table without a default!"))
   }
@@ -333,11 +345,17 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   # Calculate euclidean distance for every row
   for(parameter_name in names(parameters)) {
     
+    # Transform data.independet params that are not defined like in the data base to data.dependent  
+    data.trafo = parameter_ranges[[algo_name]]$pars[[parameter_name]]$data.trafo
+    if (!is.null(data.trafo)) {
+      dict = get_cached_task_metadata(task_id)
+      parameters[[parameter_name]] = data.trafo(dict = dict, par = parameters)
+    }
+    
     # Try to apply inverse transformation function, if one is set.
     inverse.trafo = get_inverse_trafo(algo_name, parameter_name)
     
     if(!is.null(inverse.trafo)) {
-      parameters[[parameter_name]] = inverse.trafo(as.numeric(parameters[[parameter_name]]))
       table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
     }
     
