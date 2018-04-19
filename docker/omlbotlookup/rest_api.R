@@ -37,7 +37,8 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
   
   # Check needed parameters
-  parameter_status = apply(parameters, 1, function(x) is_parameter_list_ok(algo_name, as.list(x)))
+  parameter_list = dfRowToList(parameters, parameter_ranges[[algo]])
+  parameter_status = sapply(parameter_list, function(x) is_parameter_list_ok(algo_name, x))
   parameter_status_ok = sapply(parameter_status, isTRUE)
   if (!all(parameter_status_ok)) {
     error_messages = paste0("#", which(!parameter_status_ok), ": ", parameter_status[!parameter_status_ok], collapse = ", ")
@@ -111,5 +112,5 @@ rest_algos <- function(task = NULL) {
   
   possible_algos = substring(names(get_algos_for_task(task_id)), 5) # remove "mlr." from algo ids
   
-  return(list(possible_algo_names = possible_algos)
+  return(list(possible_algo_names = possible_algos))
 }
