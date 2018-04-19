@@ -2,6 +2,7 @@
 #' @import ParamHelpers
 #' @import checkmate
 #' @import httr
+#' @import jsonlite
 
 omlTuneBenchR = new.env(parent = emptyenv())
 omlTuneBenchR$debug = FALSE
