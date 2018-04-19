@@ -341,11 +341,9 @@ get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
   table = table[complete.cases(table), , drop = FALSE]
 
   # find nearest neighbour
-  cat("table\n")
-  print(str(table))
+  
   query = parameters[names(table)[-1]]
-  cat("query\n")
-  print(query)
+  
   res = FNN::get.knnx(data = table[, -1, drop = FALSE], query = query, k = 1)
   
   distances = res$nn.dist[, 1, drop = TRUE]
@@ -365,9 +363,7 @@ get_setup_data = function(task_id, setup_ids) {
                     FROM input_setting JOIN input ON input.id = input_setting.input_id
                     WHERE setup IN (",paste0(setup_ids,collapse=", "),")")
   result = dbGetQuery(con, sql.exp)
-  cat("result_setup\n")
-  print(str(result))
-
+  
   return_value = lapply(setup_ids, function(setup_id) {
     rows = result[result$setup == setup_id, -1, drop = FALSE]
     impl_id = rows[[1]][1]
@@ -385,10 +381,8 @@ get_setup_data = function(task_id, setup_ids) {
 
     return(c(list(impl_id = impl_id, performance = performance_data), params))
   })
-  cat("raw_return\n")
-  print(return_value) 
+  
   return_value = do.call(rbind, return_value)
-  cat("rbind_return\n")
-  print(return_value) 
+  
   return(return_value)
 }
