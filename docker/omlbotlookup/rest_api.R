@@ -109,7 +109,7 @@ rest_algos <- function(task = NULL) {
     return(json_error(error_msg))
   }
   
-  possible_algos = get_algos_for_task(task_id)
+  possible_algos = substring(names(get_algos_for_task(task_id)), 5) # remove "mlr." from algo ids
   
-  return(list(possible_algo_names = names(possible_algos), possible_algo_ids = numeric(0)))
+  return(list(possible_algo_names = possible_algos)
 }

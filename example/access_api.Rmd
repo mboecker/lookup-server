@@ -13,53 +13,54 @@ bash ../docker/run-omlbotlookup.sh
 
 ## Accessing the API
 
-### Lookup performance data for `algo` on `task` with some given paramters
+
 ```{r access}
 library(jsonlite)
+library(httr)
 server.url = "http://localhost:8746"
-param = list(algo = 5965, task = 3, num.trees = 100)
-httr.res = httr::GET(server.url, query = param, httr::accept_json())
-res = httr::content(httr.res)
+```
+
+### Ask for available Tasks
+```{r tasks}
+httr.res = GET(paste0(server.url, "/tasks"), accept_json())
+content(httr.res)
+```
+
+### Ask for avaialble Algos for given Task
+```{r algos}
+httr.res = GET(paste0(server.url, "/algos"), query = list(task = 3), accept_json())
+content(httr.res)
+```
+
+### Ask for needed params for given Algo
+```{r param}
+httr.res = GET(paste0(server.url, "/params"), query = list(algo = "classif.rpart"), accept_json())
+content(httr.res)
+```
+
+### Lookup performance data for `algo` on `task` with some given paramters
+```{r performance}
+parameters = list(cp = 0.3, maxdepth = 10, minbucket = 3, minsplit = 10)
+query = list(algo = "classif.rpart", task = 3, parameters = toJSON(parameters))
+httr.res = GET(server.url, query = query, accept_json())
+res = content(httr.res)
 res
 
 # We return the performance estimate for your setup.
-performance = res$performance
+performance = res[[1]]$performance
 
 # We also return the euclidean distance to the nearest point in the database, so you know how certain we are.
-distance = res$distance
+distance = res[[1]]$distances
 
 # If you want to examine the actual point yourself, we return the setup id and parameter values of the actual run as well.
-nearest_setup = res$nearest_setup
+nearest_setup = res[[1]][names(parameters)]
 ```
 
-### Request possible tasks
-
-# We return a list of the availiable task ids.
-```{r tasks}
-server.url = "http://localhost:8746/tasks"
-httr.res = httr::GET(server.url, httr::accept_json())
-res = httr::content(httr.res)
-res
+The query can be made for multiple settings
+```{r performances}
+parameters = list(cp = c(0.3, 0.7), maxdepth = c(10, 30), minbucket = c(3, 1), minsplit = c(10, 4))
+query = list(algo = "classif.rpart", task = 3, parameters = toJSON(parameters))
+httr.res = GET(server.url, query = query, accept_json())
+res = content(httr.res)
+do.call(rbind, res)
 ```
-
-### Request possible algos on specific task
-```{r algos}
-server.url = "http://localhost:8746/algos"
-param = list(task = 3)
-httr.res = httr::GET(server.url, query = param, httr::accept_json())
-res = httr::content(httr.res)
-# We return a list of every possible algorithm id for your given task.
-# We also return the algorithm names for these ids.
-res$possible_algo_ids
-res$algorithm_names
-```
-
-### Request possible parameters
-```{r parameters}
-server.url = "http://localhost:8746/parameters"
-param = list(algo = 5859)
-httr.res = httr::GET(server.url, query = param, httr::accept_json())
-res = httr::content(httr.res)
-res
-```
-
