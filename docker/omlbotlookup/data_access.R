@@ -196,7 +196,12 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
                       AND uploader = 2702
                       AND input.implementation_id IN (", impl_ids_as_string ,");")
     result = dbGetQuery(con, sql.exp)
-    result
+    for (i in seq_len(ncol(result))) {
+      if (is.character(result[[i]])) {
+        result[[i]] = type.convert(result[[i]])  
+      }
+    }
+    return(result)
   })
   
   if(length(db_entries) == 0) {
@@ -333,18 +338,18 @@ get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
   }
 
   # Remove NAs
-  table = table[complete.cases(table),]
+  table = table[complete.cases(table), , drop = FALSE]
 
-  # scale all values to 0-1
-  #table[, -1] = apply(table[,-1,drop=F], MARGIN = 2, FUN = function(X) { X = as.numeric(X); (X - min(X))/diff(range(X)) } )
-  
   # find nearest neighbour
-  data = apply(data.matrix(table[,-1]), 2, as.numeric)
+  cat("table\n")
+  print(str(table))
   query = parameters[names(table)[-1]]
-  res = FNN::get.knnx(data = data, query = t(query), k = 1)
+  cat("query\n")
+  print(query)
+  res = FNN::get.knnx(data = table[, -1, drop = FALSE], query = query, k = 1)
   
-  distances = res$nn.dist[,1]
-  setup = table[res$nn.index[,1],]
+  distances = res$nn.dist[, 1, drop = TRUE]
+  setup = table[res$nn.index[, 1, drop = TRUE], , drop = FALSE]
 
   return(data.frame(setup_ids = setup$setup, distances = distances))
 }
@@ -360,17 +365,18 @@ get_setup_data = function(task_id, setup_ids) {
                     FROM input_setting JOIN input ON input.id = input_setting.input_id
                     WHERE setup IN (",paste0(setup_ids,collapse=", "),")")
   result = dbGetQuery(con, sql.exp)
-  
-  # Re-format data
-  return_value = as.list(unique(result$setup))
-  names(return_value) = unique(result$setup)
-  
-  return_value = lapply(return_value, function(setup_id) {
-    rows = result[result$setup == setup_id,-1]
+  cat("result_setup\n")
+  print(str(result))
+
+  return_value = lapply(setup_ids, function(setup_id) {
+    rows = result[result$setup == setup_id, -1, drop = FALSE]
     impl_id = rows[[1]][1]
     params = as.list(rows$value)
     names(params) = rows$name
     params = params[substr(names(params), start = 1, stop = 7) != "openml."]
+    for (i in seq_along(params)) {
+      if (is.character(params[[i]])) params[[i]] = type.convert(params[[i]])  
+    }
     
     # Now, we request performance data on the nearest point given by the database.
     # TODO: find out if function_id 4 is correct.
@@ -379,8 +385,10 @@ get_setup_data = function(task_id, setup_ids) {
 
     return(c(list(impl_id = impl_id, performance = performance_data), params))
   })
-
+  cat("raw_return\n")
+  print(return_value) 
   return_value = do.call(rbind, return_value)
-  
+  cat("rbind_return\n")
+  print(return_value) 
   return(return_value)
 }

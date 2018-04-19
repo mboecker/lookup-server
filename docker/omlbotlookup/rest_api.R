@@ -9,6 +9,15 @@ source("data_access.R")
 #' @post /
 rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL) {
   # Get request parameters as named list.
+  task = as.numeric(task)
+
+  parameters = tryCatch(jsonlite::fromJSON(parameters), error = function(e) e)
+  if (inherits(parameters, c("try-error", "error"))) {
+    return(json_error(sprintf("Error in converting parameters from JSON: %s", as.character(parameters))))
+  } else if (!isTRUE({err_msg = checkList(parameters, names = "named")})) {
+    return(json_error(sprintf("parameters = %s: %s",parameters, err_msg)))
+  }
+
   parameters = lapply(parameters, function(x) if (is.character(x)) type.convert(x) else x)
   parameters = as.data.frame(parameters)
   
@@ -25,10 +34,6 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
     
   if(length(algo_ids) == 0) {
     return(json_error("No such algorithm was found in the database."))
-  }
-
-  if (!isTRUE({err_msg = checkList(parameters, names = "named")})) {
-    return(json_error(paste0("parameters: ",err_msg)))
   }
   
   # Check needed parameters
@@ -50,8 +55,7 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
     return(json_error(paste(result$error, collapse = ", ")))
   } else {
     performance = get_setup_data(task, result$setup_ids)
-    performance = performance[[1]]
-    return(append(result, performance))
+    return(cbind(result, performance))
   }
 }
 
