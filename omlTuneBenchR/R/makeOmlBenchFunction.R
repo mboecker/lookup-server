@@ -12,15 +12,22 @@ makeOmlBenchFunction = function(learner.name, task.id) {
   assertInt(task.id)
   
   obj.fun = function(x) {
-    query = list(task = task.id, algo = learner.name)
-    query = c(query, as.list(x))
-    httr.res = httr::GET(omlTuneBenchR$connection, query = query, httr::accept_json())
-    res = httr::content(httr.res)
-    if (!is.null(res$error)) {
-      stop(res$error)
-    }
-    y = res$performance
-    attr(y, "extras") = res[setdiff(names(res), "performance")]
+    # we split x into chunks smaller then 1000 so that the api can handle it.
+    x = as.data.frame(x)
+    x = split(x, ceiling(seq_len(nrow(x))/200))
+    chunked.res = lapply(x, function(xs) {
+      query = list(task = task.id, algo = learner.name, parameters = jsonlite::toJSON(as.list(xs)))
+      httr.res = httr::POST(omlTuneBenchR$connection, query = query, httr::accept_json())
+      res = httr::content(httr.res)
+      if (!is.null(res$error)) {
+        stop(res$error)
+      } else {
+        return(res)
+      }
+    })
+    res = unlist(chunked.res, recursive = FALSE)
+    y = sapply(res, function(x) x$performance, simplify = TRUE)
+    attr(y, "extras") = lapply(res, function(x) x[setdiff(names(x), "performance")])
     return(y)
   }
   

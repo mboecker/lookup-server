@@ -139,11 +139,11 @@ is_parameter_list_ok = function(algo_name, params) {
   par_set = parameter_ranges[[algo_name]]
   res = tryCatch(isFeasible(par_set, params), error = function(e) e)
   if (inherits(res, c("try-error", "error"))) {
-    return(list(error = as.character(e)))
+    as.character(e)
   } else if (!isTRUE(res)) {
-    return(list(error = attr(res, "warning")))
+    attr(res, "warning")
   } else {
-    return(res)
+    TRUE
   }
 }
 
@@ -196,7 +196,12 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
                       AND uploader = 2702
                       AND input.implementation_id IN (", impl_ids_as_string ,");")
     result = dbGetQuery(con, sql.exp)
-    result
+    for (i in seq_len(ncol(result))) {
+      if (is.character(result[[i]])) {
+        result[[i]] = type.convert(result[[i]])  
+      }
+    }
+    return(result)
   })
   
   if(length(db_entries) == 0) {
@@ -282,10 +287,10 @@ replace_na_with_defaults = function(table, algo_name, parameter_names, task_id) 
 #'
 #' @param algo_ids A vector of algorithm ids, which will all be treated equally. It is required, that these all have the same name (and parameters).
 #' @param task_id A task id, given in numeric form.
-#' @param parameters A named list of the form list(parameter_name = parameter_value, parameter_name = parameter_value)
+#' @param parameters A data frame of the form data.frame(parA = c(valA1, valA2), parB = c(valB1, valB2))
 #'
 #' @return A vector of setup ids of the nearest points to the given parameters in the database.
-get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
+get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
   # Table now contains a big dataframe.
   # The rows are all setups run on the task with this algorithm.
   # The columns represent different parameters.
@@ -302,7 +307,6 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
     return(list(error = "NA found in parameter table without a default!"))
   }
   
-  # Calculate euclidean distance for every row
   for(parameter_name in names(parameters)) {
     
     # Transform data.independet params that are not defined like in the data base to data.dependent  
@@ -319,7 +323,7 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
       table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
     }
     
-    if(!is_float_number(parameters[[parameter_name]])) {
+    if(!is.numeric(parameters[[parameter_name]])) {
       # We subset the table to remove the factorial parameters, which are not equal to the request.
       table = table[table[[parameter_name]] == parameters[[parameter_name]],]
       
@@ -334,20 +338,18 @@ get_nearest_setup = function(algo_ids, algo_name, task_id, parameters) {
   }
 
   # Remove NAs
-  table = table[complete.cases(table),]
+  table = table[complete.cases(table), , drop = FALSE]
 
-  # scale all values to 0-1
-  #table[, -1] = apply(table[,-1,drop=F], MARGIN = 2, FUN = function(X) { X = as.numeric(X); (X - min(X))/diff(range(X)) } )
-  
   # find nearest neighbour
-  data = apply(data.matrix(table[,-1]), 2, as.numeric)
-  query = as.numeric(parameters[names(table)[-1]])
-  res = FNN::get.knnx(data = data, query = t(query), k = 1)
   
-  nearest_distance = res$nn.dist[1,1] #FIXME: We also want to return this value, right?
-  setup = as.list(table[res$nn.index[1,1],])
+  query = parameters[names(table)[-1]]
+  
+  res = FNN::get.knnx(data = table[, -1, drop = FALSE], query = query, k = 1)
+  
+  distances = res$nn.dist[, 1, drop = TRUE]
+  setup = table[res$nn.index[, 1, drop = TRUE], , drop = FALSE]
 
-  return(list(setup_id = setup$setup, distance = nearest_distance))
+  return(data.frame(setup_ids = setup$setup, distances = distances))
 }
 
 #' Get data associated with runs of setup "setup_ids" on task "task_id"
@@ -362,23 +364,25 @@ get_setup_data = function(task_id, setup_ids) {
                     WHERE setup IN (",paste0(setup_ids,collapse=", "),")")
   result = dbGetQuery(con, sql.exp)
   
-  # Re-format data
-  return_value = as.list(unique(result$setup))
-  names(return_value) = unique(result$setup)
-  
-  return_value = lapply(return_value, function(setup_id) {
-    rows = result[result$setup == setup_id,-1]
+  return_value = lapply(setup_ids, function(setup_id) {
+    rows = result[result$setup == setup_id, -1, drop = FALSE]
     impl_id = rows[[1]][1]
     params = as.list(rows$value)
     names(params) = rows$name
+    params = params[substr(names(params), start = 1, stop = 7) != "openml."]
+    for (i in seq_along(params)) {
+      if (is.character(params[[i]])) params[[i]] = type.convert(params[[i]])  
+    }
     
     # Now, we request performance data on the nearest point given by the database.
     # TODO: find out if function_id 4 is correct.
     sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source IN (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
     performance_data = as.numeric(dbGetQuery(con, sql.exp)[1])
 
-    return(list(impl_id = impl_id, params = params, performance=performance_data))
+    return(c(list(impl_id = impl_id, performance = performance_data), params))
   })
+  
+  return_value = do.call(rbind, return_value)
   
   return(return_value)
 }

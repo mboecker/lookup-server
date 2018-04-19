@@ -14,7 +14,8 @@ Depends:
     smoof,
     ParamHelpers,
     checkmate,
-    httr
+    httr,
+    jsonlite,
 Suggests:
     testthat,
     knitr,

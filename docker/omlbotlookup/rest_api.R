@@ -1,78 +1,76 @@
 source("data_access.R")
 
-########################################################################################################################
-
-#* @serializer unboxedJSON
-#* @get /
-rest_estimate_performance = function(res, req, task = NULL, algo = NULL, ...) {
+#' Return the performance of the closest points
+#' @serializer unboxedJSON
+#' @param task the task id
+#' @param algo the algorithm name (e.g. classif.knn) (without leading mlr. as in the DB)
+#' @param parameters named list of parameter settings. Will be converted to a data.frame. Each row represents one parameter setting.
+#' @get /
+#' @post /
+rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL) {
   # Get request parameters as named list.
-  parameters = list(...)
-  parameters = lapply(parameters, type.convert)
-  task_id = task
-  
-  if(is.null(task_id) || !is_number(task_id)) {
-    err_msg = "Please give the task argument as a number."
-    return(json_error(err_msg))
+  task = as.numeric(task)
+
+  parameters = tryCatch(jsonlite::fromJSON(parameters), error = function(e) e)
+  if (inherits(parameters, c("try-error", "error"))) {
+    return(json_error(sprintf("Error in converting parameters from JSON: %s", as.character(parameters))))
+  } else if (!isTRUE({err_msg = checkList(parameters, names = "named")})) {
+    return(json_error(sprintf("parameters = %s: %s",parameters, err_msg)))
   }
+
+  parameters = lapply(parameters, function(x) if (is.character(x)) type.convert(x) else x)
+  parameters = as.data.frame(parameters)
   
-  if(is.null(algo)) {
-    err_msg = "Please give the algo argument."
-    return(json_error(err_msg))
+  if (!isTRUE({err_msg = checkInt(task)})) {
+    return(json_error(sprintf("task = %s: %s",task, err_msg)))
   }
-  
-  # Find algorithm_name / algorithm_ids
-  if(is_number(algo)) {
-    algo_ids = algo
-    algo_name = get_algo_name_for_algo_id(algo_ids)
-  } else {
-    algo_ids = get_algo_ids_for_algo_name(algo)
-    algo_name = algo
+
+  if (!isTRUE({err_msg = checkString(algo)})) {
+    return(json_error(sprintf("algo = %s: %s", algo, err_msg)))
   }
-  
+
+  algo_ids = get_algo_ids_for_algo_name(algo)
+  algo_name = algo
+    
   if(length(algo_ids) == 0) {
     return(json_error("No such algorithm was found in the database."))
   }
   
-  if(length(parameters) == 0) {
-    return(json_error("No parameters given."))
-  }
-  
   # Check needed parameters
-  parameter_status = is_parameter_list_ok(algo_name, parameters)
-  if(!isTRUE(parameter_status)) {
-    return(parameter_status)
+  parameter_status = apply(parameters, 1, function(x) is_parameter_list_ok(algo_name, as.list(x)))
+  parameter_status_ok = sapply(parameter_status, isTRUE)
+  if (!all(parameter_status_ok)) {
+    error_messages = paste0("#", which(!parameter_status_ok), ": ", parameter_status[!parameter_status_ok], collapse = ", ")
+    return(json_error(paste0("Errors for parameter values: ", error_messages)))
   }
   
   # Lookup performance in database
-  result = get_nearest_setup(algo_ids, algo_name, task_id, parameters)
+  result = get_nearest_setups(algo_ids, algo_name, task, parameters)
   
   if(is.null(result)) {
     return(json_error("An error occured."))
   }
   
   if(!is.null(result$error)) {
-    return(list(error = result$error))
+    return(json_error(paste(result$error, collapse = ", ")))
   } else {
-    performance = get_setup_data(task_id, result)
-    performance = performance[[1]]
-    return(append(result, performance))
+    performance = get_setup_data(task, result$setup_ids)
+    return(cbind(result, performance))
   }
 }
 
-########################################################################################################################
 
 # List all possible tasks.
-#* @get /tasks
+#' @get /tasks
 rest_tasks = function() {
   all_task_ids = get_possible_task_ids()
   return(list(possible_task_ids = all_task_ids))
 }
 
-########################################################################################################################
 
 # List all possible parameters for given algorithm
-#* @serializer unboxedJSON
-#* @get /params
+#' @serializer unboxedJSON
+#' @get /params
 rest_params = function(algo = NULL) {
   if(is.null(algo)) {
     error_msg = "Please supply the parameter 'algo' for which you want the parameter list."
@@ -100,11 +98,9 @@ rest_params = function(algo = NULL) {
   return(list(params = params))
 }
 
-########################################################################################################################
-
-# List all possible algorithm ids for the given task.
-#* @serializer unboxedJSON
-#* @get /algos
+#' List all possible algorithm ids for the given task.
+#' @serializer unboxedJSON
+#' @get /algos
 rest_algos <- function(task = NULL) {
   task_id = task
   
@@ -117,5 +113,3 @@ rest_algos <- function(task = NULL) {
   
   return(list(possible_algo_names = names(possible_algos), possible_algo_ids = numeric(0)))
 }
-
-########################################################################################################################
