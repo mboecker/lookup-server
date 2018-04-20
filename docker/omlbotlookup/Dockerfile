@@ -8,6 +8,6 @@ RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('stringi','plumber'
 
 COPY data_access.R helper.R parameter_ranges.Rds paramToJSONList.R rest_api.R rest_server.R startup.sh /root/
 
-EXPOSE 8000
+EXPOSE 8746
 
-CMD /root/startup.sh
+CMD /bin/bash
