@@ -230,9 +230,7 @@ get_cached_parameter_table = memoise(get_parameter_table)
 get_parameter_default = function(algo_name, param_name, task_id) {
   params = get_params_for_algo(algo_name)
   def = params[[param_name]]$default
-  #print(param_name)
-  #print(def)
-  
+
   # We need to special case these parameters, because they are data-dependent.
   if(algo_name == "classif.ranger") {
     # Extracted from https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botCallWrapper.R, lines 35 and 37.
