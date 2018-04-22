@@ -128,6 +128,11 @@ get_algo_name_for_algo_id = function(algo_id) {
   
   if(length(result) == 0) {
     warning("There is no algorithm in the database with this id (", algo_id ,").")
+    return(NULL)
+  }
+  
+  if(substr(result, start=1, stop = 4) == "mlr.") {
+    result = substring(result, first = 5)
   }
   
   return(result)
@@ -381,9 +386,28 @@ get_setup_data = function(task_id, setup_ids) {
   return_value = lapply(setup_ids, function(setup_id) {
     rows = result[result$setup == setup_id, -1, drop = FALSE]
     impl_id = rows[[1]][1]
+    algo_name = get_algo_name_for_algo_id(impl_id)
     params = as.list(rows$value)
     names(params) = rows$name
+
+    # Remove openml. parameters
     params = params[substr(names(params), start = 1, stop = 7) != "openml."]
+    
+    # Find out which parameters are not present in the database
+    needs_default_names = parameter_ranges[[algo_name]]$pars
+    needs_default_names[names(params)] = NULL
+    needs_default_names = names(needs_default_names)
+
+    # Get default values for these parameters
+    default_values = lapply(needs_default_names, function(param_name) {
+      get_parameter_default(algo_name, param_name, task_id)
+    })
+    names(default_values) = needs_default_names 
+    
+    # Add defaults
+    params = append(params, default_values)
+    
+    # ?
     for (i in seq_along(params)) {
       if (is.character(params[[i]])) params[[i]] = type.convert(params[[i]])  
     }
@@ -395,7 +419,7 @@ get_setup_data = function(task_id, setup_ids) {
 
     return(c(list(impl_id = impl_id, performance = performance_data), params))
   })
-  
+
   return_value = do.call(rbind, return_value)
   
   return(return_value)
