@@ -7,8 +7,9 @@ learner.name = "classif.ranger"
 of = makeOmlBenchFunction(learner.name, task.id)
 par.set = getParamSet(of)
 x = sampleValue(par.set)
-res = of(sampleValue(par.set))
-res
+res = of(x)
+do.call(rbind, attr(res, "extras"))
+do.call(cbind, x)
 des = generateGridDesign(par.set, 100)
 res = of(des)
 des$y = as.numeric(res)
