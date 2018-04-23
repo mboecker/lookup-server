@@ -150,7 +150,7 @@ is_parameter_list_ok = function(algo_name, params) {
   par_set = parameter_ranges[[algo_name]]
   res = tryCatch(isFeasible(par_set, params), error = function(e) e)
   if (inherits(res, c("try-error", "error"))) {
-    as.character(e)
+    as.character(res)
   } else if (!isTRUE(res)) {
     attr(res, "warning")
   } else {
@@ -358,9 +358,16 @@ get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
   # Remove NAs
   table = table[complete.cases(table), , drop = FALSE]
 
-  # find nearest neighbour
-  
   query = parameters[names(table)[-1]]
+
+  # scale table and query to 01
+  mins = sapply(table[, -1, drop = FALSE], min)
+  maxs = sapply(table[, -1, drop = FALSE], max)
+  table.scaled = scale(table[, -1, drop = FALSE], center = mins, scale = maxs - mins)
+  table[, 2:ncol(table)] = table.scaled
+  query = as.data.frame(scale(query, center = mins, scale = maxs - mins))
+
+  # find nearest neighbour
   
   res = FNN::get.knnx(data = table[, -1, drop = FALSE], query = query, k = 1)
   
