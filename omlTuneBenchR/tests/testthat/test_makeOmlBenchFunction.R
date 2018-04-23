@@ -1,3 +1,5 @@
+context("makeOmlBenchFunction")
+
 test_that("omlBenchFunctions work", {
   r = startOmlTuneServer()
   expect_true(r)
