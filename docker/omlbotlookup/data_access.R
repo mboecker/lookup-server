@@ -407,7 +407,6 @@ get_setup_data = function(task_id, setup_ids) {
     # Add defaults
     params = append(params, default_values)
     
-    # ?
     for (i in seq_along(params)) {
       if (is.character(params[[i]])) params[[i]] = type.convert(params[[i]])  
     }
