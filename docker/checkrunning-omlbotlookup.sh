@@ -1,9 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 running=$(docker ps --filter "status=running" --filter "name=$USER-omlbotlookup" --quiet)
 if [ ! $running ];then
   echo "No running containers"
- return 1
+ exit 1
 else
  echo $running
- return 0
+ exit 0
 fi
