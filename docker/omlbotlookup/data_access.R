@@ -150,7 +150,7 @@ is_parameter_list_ok = function(algo_name, params) {
   par_set = parameter_ranges[[algo_name]]
   res = tryCatch(isFeasible(par_set, params), error = function(e) e)
   if (inherits(res, c("try-error", "error"))) {
-    as.character(e)
+    as.character(res)
   } else if (!isTRUE(res)) {
     attr(res, "warning")
   } else {
