@@ -6,7 +6,7 @@ startOmlTuneServer = function() {
   # check if server already runs
   out = callShScript("checkrunning-omlbotlookup.sh")
   if (out$success) {
-    if (checkIfTuneServerIsUp(omlTuneBenchR$adress.default, timeout = 600)) {
+    if (checkIfTuneServerIsUp(omlTuneBenchR$adress.default, timeout = 300L)) {
       message("Server is already running!")
     } else {
       stop("Server is up but not responding!")
@@ -30,5 +30,5 @@ startOmlTuneServer = function() {
     }
   }
   # set adress to local (which should be the default)
-  connectToOmlTuneServer(omlTuneBenchR$adress.default, timeout = 120)
+  connectToOmlTuneServer(omlTuneBenchR$adress.default, timeout = 120L)
 }
