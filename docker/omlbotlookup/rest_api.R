@@ -37,7 +37,11 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
   
   # Check needed parameters
-  parameter_list = dfRowToList(parameters, parameter_ranges[[algo]])
+  if (ncol(parameters) == 1) { #FIXME: Workaround for PH bug!
+    parameter_list = lapply(parameters[, 1, drop = TRUE], function(x) setNames(list(x), names(parameters)))
+  } else {
+    parameter_list = dfRowsToList(parameters, parameter_ranges[[algo]])  
+  }
   parameter_status = sapply(parameter_list, function(x) is_parameter_list_ok(algo_name, x))
   parameter_status_ok = sapply(parameter_status, isTRUE)
   if (!all(parameter_status_ok)) {

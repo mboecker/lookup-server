@@ -1,3 +1,2 @@
-#!/bin/sh
+#!/bin/bash
 docker rm $USER-omlbotlookup
-
