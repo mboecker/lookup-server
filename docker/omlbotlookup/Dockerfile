@@ -10,6 +10,6 @@ COPY data_access.R helper.R parameter_ranges.Rds paramToJSONList.R rest_api.R re
 
 EXPOSE 8746
 
-RUN chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
+RUN chown -R mysql:mysql /var/lib/mysql
 
 CMD /bin/bash
