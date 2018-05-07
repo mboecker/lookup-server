@@ -1,5 +1,5 @@
 -- Create temporary database
-DROP DATABASE openml_exporting;
+DROP DATABASE IF EXISTS openml_exporting;
 CREATE DATABASE openml_exporting;
 
 -- Copy table structures
@@ -49,26 +49,25 @@ ALTER TABLE openml_exporting.implementation
   DROP COLUMN binary_file_id,
   DROP COLUMN source_file_id,
   DROP COLUMN visibility,
-  DROP COLUMN citation;
+  DROP COLUMN citation;	
 
--- Copy only runs from our upload, and for multiple runs use only the latest run
+-- Copy only runs from our upload, and for multiple runs use only the latest run. Also remove runs without evaluations.
 INSERT INTO openml_exporting.run
-  SELECT rid, setup, task_id FROM (
-    SELECT rid, setup, task_id, start_time  
-    FROM openml.run
-    WHERE uploader = 2702
-    GROUP BY setup, task_id
-    HAVING start_time = MAX(start_time)) AS t;
+  SELECT r1.rid, r1.setup, r1.task_id
+  FROM run AS r1
+  WHERE r1.start_time = (SELECT MAX(r2.start_time) FROM run AS r2 WHERE r2.setup = r1.setup AND r2.task_id = r1.task_id)
+    AND r1.rid IN (SELECT source FROM evaluation)
+    AND uploader = 2702;
 
 -- Copy only parameter values for the runs in run
-INSERT INTO openml_exporting.input_setting
+INSERT IGNORE INTO openml_exporting.input_setting
   SELECT input_setting.setup, input_id, value
   FROM openml.input_setting, openml_exporting.run
   WHERE input_setting.setup = run.setup;
 
 -- Copy only parameter definitions for the values in input_setting
-INSERT INTO openml_exporting.input
-  SELECT DISTINCT id, implementation_id, name, fullName
+INSERT IGNORE INTO openml_exporting.input
+  SELECT id, fullName, implementation_id, name
   FROM openml.input
   JOIN openml_exporting.input_setting
   ON input.id = input_setting.input_id;
