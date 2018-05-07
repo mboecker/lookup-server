@@ -285,7 +285,8 @@ replace_na_with_defaults = function(table, algo_name, parameter_names, task_id) 
     if(any(nas)) {
       def = get_parameter_default(algo_name, parameter_name, task_id)
       if (is.null(def)) {
-        warning(paste0("NA found in parameter table without a default! (Parameter name: ",parameter_name,")"))
+        setup = table[nas,"setup"]
+        warning(paste0("NA found in parameter table without a default! (Algo: ",algo_name,", Parameter name: ",parameter_name,", setup: ",paste0(setup, collapse=", "),")"))
         return(NULL)
       } else {
         table[[parameter_name]][nas] = def
@@ -419,11 +420,20 @@ get_setup_data = function(task_id, setup_ids) {
     }
     
     # Now, we request performance data on the nearest point given by the database.
-    # TODO: find out if function_id 4 is correct.
-    sql.exp = paste0("SELECT AVG(value) FROM evaluation WHERE source IN (SELECT rid FROM run WHERE task_id = ", task_id, " AND setup = ", setup_id, ") AND function_id = 4");
-    performance_data = as.numeric(dbGetQuery(con, sql.exp)[1])
+    sql.exp = paste0("SELECT evaluation.source, function_id, value FROM evaluation JOIN run ON run.rid = evaluation.source WHERE task_id = ", task_id, " AND setup = ", setup_id, " AND function_id IN (4,45,54,59,63) ORDER BY function_id")
+    result = dbGetQuery(con, sql.exp)
+    
+    function_names = c("auc","accuracy","rmse","scimark","runtime")
+    
+    if(dim(result)[1] != 5) {
+      stop("Not 5 function ids!")
+    }
+    
+    rid = result$source[1]
+    performance_data = as.list(result$value)
+    names(performance_data) = function_names
 
-    return(c(list(impl_id = impl_id, performance = performance_data), params))
+    return(c(list(impl_id = impl_id, run_id = rid, performance = performance_data), params))
   })
 
   return_value = do.call(rbind, return_value)
