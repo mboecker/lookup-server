@@ -1,3 +1,3 @@
 library(plumber)
-r <- plumb("rest_api.R")              # <- This line uses the new API.
+r <- plumb("rest_api.R")
 r$run(host='0.0.0.0', port=8746)
