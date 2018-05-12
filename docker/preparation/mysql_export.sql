@@ -81,6 +81,6 @@ INSERT INTO openml_exporting.evaluation
   
 -- Copy only implementation details for the implementations referenced in input
 INSERT INTO openml_exporting.implementation
-  SELECT DISTINCT implementation.id, implementation.name, implementation.fullName
+  SELECT DISTINCT implementation.id, implementation.fullName, implementation.name
   FROM openml.implementation, openml_exporting.input
   WHERE input.implementation_id = implementation.id;
