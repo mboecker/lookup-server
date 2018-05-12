@@ -205,7 +205,6 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
                       JOIN run ON run.setup = input_setting.setup
                       WHERE input.name = '", parameter_name,"'
                       AND task_id = ", task_id, "
-                      AND uploader = 2702
                       AND input.implementation_id IN (", impl_ids_as_string ,");")
     result = dbGetQuery(con, sql.exp)
     for (i in seq_len(ncol(result))) {
