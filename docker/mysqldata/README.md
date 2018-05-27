@@ -1,7 +1,2 @@
-Place the database sql file here named as `database.sql`.
-
-The full version can be acquired [here](https://www.openml.org/downloads/ExpDB_SNAPSHOT.sql.gz).
-Be advised that the startup time of the docker container with this version will likely be several hours due to the import time.
-
-The stripped down version, which only contains task_id = 3 can be found [here](https://depot.tu-dortmund.de/ser88).
-This can be imported in less than a minute on our testing machines.
+The database can be acquired [here](https://www.statistik.tu-dortmund.de/~richter/reduced.sql.gz).
+It can then be imported in the running container with by piping it into `import_data.sh`.
