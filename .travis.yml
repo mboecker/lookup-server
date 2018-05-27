@@ -15,3 +15,5 @@ before_script:
 - R --no-save <<< 'library("devtools"); document()'
 - bash ../docker/rebuild-omlbotlookup.sh
 - bash ../docker/run-omlbotlookup.sh
+- curl -sL https://www.rombie.de/reduced_task3.sql.gz > ../docker/mysqldata/reduced-task3.sql.gz
+- bash ../docker/import-task3-data.sh
