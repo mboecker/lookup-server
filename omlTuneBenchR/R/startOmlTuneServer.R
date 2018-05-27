@@ -15,7 +15,7 @@ startOmlTuneServer = function() {
     # check if a stopped container exists
     out = callShScript("checkstopped-omlbotlookup.sh")
     if (out$success) {
-      message(sprintf("An exisiting container (%s) gets started!", out$output))
+      message(sprintf("An existing container (%s) gets started!", out$output))
       out = callShScript("start-omlbotlookup.sh")
       if (!out$success) {
         stop(sprintf("Could not start existing container! Last output: %s", out$output))
@@ -26,6 +26,12 @@ startOmlTuneServer = function() {
       out = callShScript("run-omlbotlookup.sh")
       if (!out$success) {
         stop(sprintf("Could not run new container! Last output: %s", out$output))
+      }
+      
+      # FIXME: Change this to import-full-data.sh
+      out = callShScript("import-task3-data.sh")
+      if (!out$success) {
+        stop(sprintf("Could not import data! Last output: %s", out$output))
       }
     }
   }
