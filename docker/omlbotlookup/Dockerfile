@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y r-base-dev sudo curl git libcurl4-opens
 
 RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('stringi','plumber','RMySQL', 'checkmate', 'ParamHelpers','FNN','memoise', 'httr'))"
 
-COPY data_access.R helper.R parameter_ranges.Rds paramToJSONList.R rest_api.R rest_server.R startup.sh import_db.sh /root/
+COPY data_access.R helper.R parameter_ranges.Rds paramToJSONList.R rest_api.R rest_server.R startup.sh import_db.sh wait_for_mysqld.sh /root/
 
 EXPOSE 8000
 
