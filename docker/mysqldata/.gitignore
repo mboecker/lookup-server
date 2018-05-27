@@ -1,1 +1,2 @@
-database.sql
+*.sql
+*.sql.gz
