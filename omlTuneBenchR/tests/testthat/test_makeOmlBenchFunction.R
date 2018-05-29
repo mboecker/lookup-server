@@ -14,6 +14,6 @@ test_that("omlBenchFunctions work", {
   x = sampleValue(par.set)
   res = of(x)
   
-  # TODO: Assert here that we get auc, accuracy, rmse, scimark and runtime.
-  # TODO: Assert that these are numeric.
+  expect_numeric(res)
+  expect_list(attr(res, "extras"), len = length(res))
 })
