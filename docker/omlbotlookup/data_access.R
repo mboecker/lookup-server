@@ -422,12 +422,18 @@ get_setup_data = function(task_id, setup_ids) {
     sql.exp = paste0("SELECT evaluation.source, function_id, value FROM evaluation JOIN run ON run.rid = evaluation.source WHERE task_id = ", task_id, " AND setup = ", setup_id, " AND function_id IN (4,45,54,59,63) ORDER BY function_id")
     result = dbGetQuery(con, sql.exp)
     
-    function_names = c("auc","accuracy","rmse","scimark","runtime")
+    n_func_ids = dim(result)[1];
     
-    if(dim(result)[1] != 5) {
-      stop("Not 5 function ids!")
+    if(n_func_ids < 4) {
+      stop("Less than 4 function ids!")
     }
     
+    if(n_func_ids == 4) {
+      function_names = c("auc","accuracy","rmse","runtime")
+    } else {
+      function_names = c("auc","accuracy","rmse","scimark","runtime")
+    }
+     
     rid = result$source[1]
     performance_data = as.list(result$value)
     names(performance_data) = function_names
