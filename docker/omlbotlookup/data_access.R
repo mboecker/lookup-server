@@ -7,13 +7,14 @@ library("ParamHelpers")
 source("paramToJSONList.R")
 source("helper.R")
 
-
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
 mysql_dbname = "openml"
 mysql_host = "127.0.0.1"
 
+# Delete the cache after 120 seconds
+cache.timeout = 120
 
 # Open database connection
 con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname, host = mysql_host)
@@ -186,7 +187,7 @@ get_task_metadata = function(task_id) {
   return(list(nrow = nrow, ncol = ncol))
 }
 
-get_cached_task_metadata = memoise(get_task_metadata)
+get_cached_task_metadata = memoise(get_task_metadata, ~timeout(cache.timeout))
 
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
@@ -236,7 +237,7 @@ get_parameter_table = function(algo_ids, task_id, parameter_names) {
   return(table)
 }
 
-get_cached_parameter_table = memoise(get_parameter_table)
+get_cached_parameter_table = memoise(get_parameter_table, ~timeout(cache.timeout))
 
 
 #' Returns the default value for the given parameter on the given task
