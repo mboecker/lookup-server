@@ -244,20 +244,9 @@ get_cached_parameter_table = memoise(get_parameter_table, ~timeout(cache.timeout
 #'
 #' @param algo_name The algorithm name the parameter belongs to.
 #' @param param_name The parameter name.
-#' @param task_id This is sometimes needed, because some defaults are data-dependent.
-get_parameter_default = function(algo_name, param_name, task_id) {
+get_parameter_default = function(algo_name, param_name) {
   params = get_params_for_algo(algo_name)
   def = params[[param_name]]$default
-
-  # We need to special case these parameters, because they are data-dependent.
-  if(algo_name == "classif.ranger") {
-    # Extracted from https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botCallWrapper.R, lines 35 and 37.
-    if(param_name == "mtry") {
-      ncol = get_cached_task_metadata(task_id)$ncol
-      def = floor(sqrt(ncol))
-    }
-  }
-  
   return(def)
 }
 
@@ -283,7 +272,7 @@ replace_na_with_defaults = function(table, algo_name, parameter_names, task_id) 
     
     nas = is.na(table[[parameter_name]])
     if(any(nas)) {
-      def = get_parameter_default(algo_name, parameter_name, task_id)
+      def = get_parameter_default(algo_name, parameter_name)
       if (!is.null(def)) {
         table[[parameter_name]][nas] = def
       }
@@ -407,7 +396,7 @@ get_setup_data = function(task_id, setup_ids) {
 
     # Get default values for these parameters
     default_values = lapply(needs_default_names, function(param_name) {
-      get_parameter_default(algo_name, param_name, task_id)
+      get_parameter_default(algo_name, param_name)
     })
     names(default_values) = needs_default_names 
     
