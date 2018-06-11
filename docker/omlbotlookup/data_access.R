@@ -283,15 +283,17 @@ replace_na_with_defaults = function(table, algo_name, parameter_names, task_id) 
     nas = is.na(table[[parameter_name]])
     if(any(nas)) {
       def = get_parameter_default(algo_name, parameter_name, task_id)
-      if (is.null(def)) {
-        setup = table[nas,"setup"]
-        warning(paste0("NA found in parameter table without a default! (Algo: ",algo_name,", Parameter name: ",parameter_name,", setup: ",paste0(setup, collapse=", "),")"))
-        return(NULL)
-      } else {
+      if (!is.null(def)) {
         table[[parameter_name]][nas] = def
       }
     }
   }
+  
+  cc = complete.cases(table)
+  
+  cat(sprintf("Removing %f%% (%d/%d) of runs, because they had missing values.\n", (sum(!cc) * 100.0 / dim(table)[1]), sum(!cc), dim(table)[1]))
+  
+  table = table[cc,]
   
   return(table)
 }
@@ -321,9 +323,6 @@ get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
   
   # Fill in defaults for NAs
   table = replace_na_with_defaults(table, algo_name, names(parameters), task_id);
-  if(is.null(table)) {
-    return(list(error = "NA found in parameter table without a default!"))
-  }
   
   for(parameter_name in names(parameters)) {
     
