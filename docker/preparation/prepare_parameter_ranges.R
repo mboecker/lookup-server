@@ -33,9 +33,9 @@ parameters = function() {
   # "ignore" option is not implemented in the database but only in mlr.
   bot.par.sets$classif.ranger$pars$respect.unordered.factors$default = "FALSE"
   
+  # Define transformations based on data to calculate the correct data-independent values for comparison.
   bot.par.sets$classif.ranger$pars$min.node.size$data.trafo = function(par, dict) round(2^(log(dict$nrow, 2) * par$min.node.size))
   bot.par.sets$classif.ranger$pars$mtry$data.trafo = function(par, dict) ceiling(dict$ncol * par$mtry)
-  
   
   # manually add inverse
   for (n.lrn in names(bot.par.sets)) {
