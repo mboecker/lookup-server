@@ -32,7 +32,6 @@ parameters = function() {
   # Manually re-define the default for this "ranger"-parameter, because the new
   # "ignore" option is not implemented in the database but only in mlr.
   bot.par.sets$classif.ranger$pars$respect.unordered.factors$default = "FALSE"
-  bot.par.sets$classif.ranger$pars$min.node.size$default = 10
   
   bot.par.sets$classif.ranger$pars$min.node.size$data.trafo = function(par, dict) round(2^(log(dict$nrow, 2) * par$min.node.size))
   bot.par.sets$classif.ranger$pars$mtry$data.trafo = function(par, dict) ceiling(dict$ncol * par$mtry)
