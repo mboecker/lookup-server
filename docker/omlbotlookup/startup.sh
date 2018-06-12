@@ -6,6 +6,8 @@ set -o pipefail
 # Start the database service.
 service mysql start
 
+cat /var/log/mysql/error.log
+
 # Create an empty database.
 echo "CREATE DATABASE IF NOT EXISTS openml;" | mysql
 
