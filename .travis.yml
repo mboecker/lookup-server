@@ -16,7 +16,4 @@ before_script:
 - bash ../docker/rebuild-omlbotlookup.sh
 - bash ../docker/run-omlbotlookup.sh
 - sleep 120
-- docker container ls -a
-- docker logs --details $USER-omlbotlookup
-- echo "cat /var/log/mysql/error.log" | docker exec -i $USER-omlbotlookup /bin/bash
 - bash ../docker/import-task3-data.sh
