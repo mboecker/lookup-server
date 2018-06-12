@@ -1,13 +1,13 @@
-context("All Learners on Task 3")
+context("All Learners on task 3")
+
+r = startOmlTuneServer()
+expect_true(r)
 
 task.id = 3
 learners = c("classif.kknn", "classif.glmnet", "classif.ranger", "classif.rpart")# FIXME: , "classif.svm", "classif.xgboost")
 
 for (learner in learners) {
   test_that(learner, {
-    r = startOmlTuneServer()
-    expect_true(r)
-  
     of = makeOmlBenchFunction(learner, task.id)
     expect_class(of, "smoof_function")
     
