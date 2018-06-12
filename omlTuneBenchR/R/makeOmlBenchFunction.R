@@ -7,14 +7,14 @@
 #' @return `function`
 #' @export
 
-makeOmlBenchFunction = function(learner.name, task.id) {
+makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, include.extras = FALSE) {
   assertString(learner.name)
   assertInt(task.id)
   
   obj.fun = function(x) {
-    # we split x into chunks smaller then 200 so that the api can handle it.
+    # we split x into chunks smaller then 20 so that the api can handle it.
     x = as.data.frame(x)
-    x = split(x, ceiling(seq_len(nrow(x))/200))
+    x = split(x, ceiling(seq_len(nrow(x))/api.chunksize))
     # we will get a nested list, each list item are the result of one chunk
     chunked.res = lapply(x, function(xs) {
       query = list(task = task.id, algo = learner.name, parameters = jsonlite::toJSON(as.list(xs)))
@@ -29,12 +29,15 @@ makeOmlBenchFunction = function(learner.name, task.id) {
     res = unlist(chunked.res, recursive = FALSE) # unlist, so we have a list with each item corresponding to one x value
     y = sapply(res, function(x) x$performance$accuracy, simplify = TRUE) # y will be the accuracy as a numeric vector
     # add extras as a non-nested list. each i-th item corresponds to the i-th entry in the y vecotr
-    attr(y, "extras") = lapply(res, function(x) {
-      perfs = x$performance
-      perfs$accuracy = NULL
-      x$performance = NULL
-      c(x, perfs)
-    })
+    if (include.extras) {
+      attr(y, "extras") = lapply(res, function(x) {
+        perfs = x$performance
+        perfs$accuracy = NULL
+        x$performance = NULL
+        c(x, perfs)
+      })  
+    }
+    
     return(y)
   }
   

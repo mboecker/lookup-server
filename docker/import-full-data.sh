@@ -6,4 +6,4 @@ if [ ! -f $file ]; then
     echo "File $file not found! We will download it."
     wget https://www.statistik.tu-dortmund.de/~richter/reduced.sql.gz -O $file
 fi
-zcat $file | ./import_data.sh
+zcat $file | ./import-data.sh

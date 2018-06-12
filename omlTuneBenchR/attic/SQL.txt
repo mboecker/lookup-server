@@ -1,0 +1,19 @@
+SELECT * FROM implementation WHERE name = 'mlr.classif.ranger';
+SELECT * FROM implementation WHERE name = 'mlr.classif.ranger' INNER JOIN input;
+
+# incl performance
+SELECT eva.value AS performance, ise.value AS param FROM implementation AS imp
+INNER JOIN input AS inp ON imp.id = inp.implementation_id
+INNER JOIN input_setting AS ise ON ise.input_id = inp.id
+INNER JOIN run ON run.setup = ise.setup
+INNER JOIN evaluation AS eva ON eva.source = run.rid
+WHERE imp.name = 'mlr.classif.ranger' AND inp.name = 'mtry' AND run.task_id = 3 AND eva.function_id = 45
+LIMIT 1,2;
+
+# ohne performance
+SELECT ise.setup, ise.value AS mtry FROM implementation AS imp
+INNER JOIN input AS inp ON imp.id = inp.implementation_id
+INNER JOIN input_setting AS ise ON ise.input_id = inp.id
+INNER JOIN run ON run.setup = ise.setup
+WHERE imp.name = 'mlr.classif.ranger' AND inp.name = 'mtry' AND run.task_id = 3
+LIMIT 1,2;
