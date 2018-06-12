@@ -18,4 +18,5 @@ before_script:
 - sleep 120
 - docker container ls -a
 - docker logs --details $USER-omlbotlookup
+- cat /var/log/mysql/error.log
 - bash ../docker/import-task3-data.sh
