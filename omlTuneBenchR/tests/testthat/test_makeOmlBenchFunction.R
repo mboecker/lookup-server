@@ -1,6 +1,6 @@
 context("makeOmlBenchFunction")
 
-test_that("omlBenchFunctions work", {
+test_that("simple: kknn", {
   r = startOmlTuneServer()
   expect_true(r)
 

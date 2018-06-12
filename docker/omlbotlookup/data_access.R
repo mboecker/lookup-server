@@ -267,9 +267,8 @@ get_inverse_trafo = function(algo_name, param_name) {
 #' @param algo_name The algorithm name the parameters belong to.
 #' @param param_names The parameter names as a vector.
 #' @param task_id This is sometimes needed, because some defaults are data-dependent.
-replace_na_with_defaults = function(table, algo_name, parameter_names, task_id) {
+replace_na_with_defaults = function(table, algo_name, parameter_names) {
   for(parameter_name in parameter_names) {
-    
     nas = is.na(table[[parameter_name]])
     if(any(nas)) {
       def = get_parameter_default(algo_name, parameter_name)
@@ -312,7 +311,7 @@ get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
   }
   
   # Fill in defaults for NAs
-  table = replace_na_with_defaults(table, algo_name, names(parameters), task_id);
+  table = replace_na_with_defaults(table, algo_name, names(parameters));
   
   for(parameter_name in names(parameters)) {
     
