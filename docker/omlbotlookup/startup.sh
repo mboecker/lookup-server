@@ -3,6 +3,8 @@
 # In a construct like "a | b", this causes "a | b" to fail, if a failed:
 set -o pipefail
 
+chown -R mysql:mysql /var/lib/mysql /var/run/mysqld
+
 # Start the database service.
 service mysql start
 
