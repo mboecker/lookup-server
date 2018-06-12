@@ -14,6 +14,7 @@ before_install:
 before_script:
 - R --no-save <<< 'library("devtools"); document()'
 - bash ../docker/rebuild-omlbotlookup.sh
+- bash ../docker/remove-omlbotlookup.sh
 - bash ../docker/run-omlbotlookup.sh
-- curl -sL https://www.statistik.tu-dortmund.de/~richter/reduced_task3.sql.gz > ../docker/mysqldata/reduced-task3.sql.gz
+- sleep 30
 - bash ../docker/import-task3-data.sh
