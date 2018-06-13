@@ -17,3 +17,86 @@ INNER JOIN input_setting AS ise ON ise.input_id = inp.id
 INNER JOIN run ON run.setup = ise.setup
 WHERE imp.name = 'mlr.classif.ranger' AND inp.name = 'mtry' AND run.task_id = 3
 LIMIT 1,2;
+
+# multiple params
+SELECT DISTINCT ise1.setup, ise1.value AS 'mtry', ise2.value AS 'sample.fraction' FROM implementation AS imp
+INNER JOIN input AS inp1 ON imp.id = inp1.implementation_id
+INNER JOIN input AS inp2 ON imp.id = inp2.implementation_id
+INNER JOIN input_setting AS ise1 ON ise1.input_id = inp1.id
+INNER JOIN input_setting AS ise2 ON ise2.input_id = inp2.id
+INNER JOIN run ON run.setup = ise1.setup AND run.setup = ise2.setup
+WHERE imp.name = 'mlr.classif.ranger' AND inp1.name = 'mtry' AND inp2.name = 'sample.fraction' AND run.task_id = 3;
+
+# mega
+SELECT DISTINCT ise1.setup, ise1.value AS 'mtry', ise2.value AS 'min.node.size', ise3.value AS 'num.trees', ise4.value AS 'replace', ise5.value AS 'sample.fraction', ise6.value AS 'respect.unordered.factors' FROM implementation AS imp
+INNER JOIN input AS inp1 ON imp.id = inp1.implementation_id
+INNER JOIN input AS inp2 ON imp.id = inp2.implementation_id
+INNER JOIN input AS inp3 ON imp.id = inp3.implementation_id
+INNER JOIN input AS inp4 ON imp.id = inp4.implementation_id
+INNER JOIN input AS inp5 ON imp.id = inp5.implementation_id
+INNER JOIN input AS inp6 ON imp.id = inp6.implementation_id
+INNER JOIN input_setting AS ise1 ON ise1.input_id = inp1.id
+INNER JOIN input_setting AS ise2 ON ise2.input_id = inp2.id
+INNER JOIN input_setting AS ise3 ON ise3.input_id = inp3.id
+INNER JOIN input_setting AS ise4 ON ise4.input_id = inp4.id
+INNER JOIN input_setting AS ise5 ON ise5.input_id = inp5.id
+INNER JOIN input_setting AS ise6 ON ise6.input_id = inp6.id
+INNER JOIN run ON run.setup = ise1.setup AND run.setup = ise2.setup AND run.setup = ise3.setup AND run.setup = ise4.setup AND run.setup = ise5.setup AND run.setup = ise6.setup
+WHERE imp.name = 'mlr.classif.ranger' AND inp1.name = 'mtry' AND inp2.name = 'min.node.size' AND inp3.name = 'num.trees' AND inp4.name = 'replace' AND inp5.name = 'sample.fraction' AND inp6.name = 'respect.unordered.factors' AND run.task_id = 3
+LIMIT 1,4;
+
+# missing params
+SELECT * FROM implementation WHERE name = 'mlr.classif.ranger' JOIN input ON implementaion.id = input.implementation_id LIMIT 1,5;
+SELECT * FROM input WHERE name IN ('mtry', 'min.node.size') LIMIT 1,5;
+
+
+
+mysql> SELECT * FROM input LIMIT 100,5;
++-------+---------------------------------------+-------------------+--------------------+
+| id    | fullName                              | implementation_id | name               |
++-------+---------------------------------------+-------------------+--------------------+
+| 55799 | mlr.classif.svm(8)_gamma              |              5969 | gamma              |
+| 55806 | mlr.classif.svm(8)_openml.seed        |              5969 | openml.seed        |
+| 55807 | mlr.classif.svm(8)_openml.kind        |              5969 | openml.kind        |
+| 55808 | mlr.classif.svm(8)_openml.normal.kind |              5969 | openml.normal.kind |
+| 55809 | mlr.classif.glmnet(5)_alpha           |              5970 | alpha              |
++-------+---------------------------------------+-------------------+--------------------+
+
+mysql> SELECT * FROM input_setting LIMIT 100,5;
++-------+----------+------------------+
+| setup | input_id | value            |
++-------+----------+------------------+
+| 29354 |    52516 | 1                |
+| 29354 |    52517 | Mersenne-Twister |
+| 29354 |    52518 | Inversion        |
+| 29355 |    52506 | 56               |
+| 29355 |    52507 | 49               |
++-------+----------+------------------+
+5 rows in set (0.00 sec)
+
+
+mysql> SELECT * FROM run LIMIT 100,5;
++---------+-------+---------+
+| rid     | setup | task_id |
++---------+-------+---------+
+| 8434848 | 29086 |  145834 |
+| 8453744 | 29087 |       3 |
+| 8462227 | 29087 |      31 |
+| 2467638 | 29087 |    3899 |
+| 8442845 | 29087 |    7295 |
++---------+-------+---------+
+
+mysql> SELECT * FROM implementation LIMIT 1,5;
++------+-----------------------+--------------------+
+| id   | fullName              | name               |
++------+-----------------------+--------------------+
+| 5527 | mlr.classif.svm(6)    | mlr.classif.svm    |
+| 5623 | mlr.classif.glmnet(3) | mlr.classif.glmnet |
+| 5624 | mlr.classif.rpart(28) | mlr.classif.rpart  |
+| 5636 | mlr.classif.rpart(29) | mlr.classif.rpart  |
+| 5859 | mlr.classif.rpart(31) | mlr.classif.rpart  |
++------+-----------------------+--------------------+
+
+
+
+

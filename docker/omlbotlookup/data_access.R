@@ -196,9 +196,36 @@ get_cached_task_metadata = memoise(get_task_metadata, ~timeout(cache.timeout))
 #' @param parameter_names A vector or list of 
 #'
 #' @return A dataframe containing: A column "setup", with the setup_id. A column "<parameter_name>" for every parameter. And one row of data for every setup, that has been run with one of the given algorithms, containing the parameter_data of that run.
-get_parameter_table = function(algo_ids, task_id, parameter_names) {
-  impl_ids_as_string = paste0(algo_ids, collapse = ", ")
+get_parameter_table = function(algo_id, task_id, parameter_names, parameter_values) {
   
+# generates something like this
+#
+# "SELECT ise1.setup, ise1.value AS mtry, ise2.value AS 'min.node.size' FROM implementation AS imp
+# INNER JOIN input AS inp1 ON imp.id = inp1.implementation_id
+# INNER JOIN input AS inp2 ON imp.id = inp2.implementation_id
+# INNER JOIN input_setting AS ise1 ON ise1.input_id = inp1.id
+# INNER JOIN input_setting AS ise2 ON ise2.input_id = inp2.id
+# INNER JOIN run ON run.setup = ise1.setup AND run.setup = ise2.setup
+# WHERE imp.name = 'mlr.classif.ranger' AND inp1.name = 'mtry' AND inp2.name = 'min.node.size' AND run.task_id = 145855
+# LIMIT 1,20;"
+  
+  algo_id = "mlr.classif.ranger"
+  parameter_names = c("mtry", "min.node.size", "num.trees", "replace", "sample.fraction", "respect.unordered.factors")
+  task_id = 3
+  is = seq_along(parameter_names)
+  value.columns = paste0("ise", is, ".value AS '", parameter_names, "'", collapse = ", ")
+  inp.join = paste0("INNER JOIN input AS inp", is," ON imp.id = inp", is,".implementation_id", collapse = "\n")
+  ise.join = paste0("INNER JOIN input_setting AS ise", is, " ON ise", is, ".input_id = inp", is, ".id", collapse = "\n")
+  run.join.ons = paste0("run.setup = ise", is, ".setup", collapse = " AND ")
+  where.clause = paste0("inp", is, ".name = '", parameter_names, "'", collapse = " AND ")
+  sql.exp = paste0("SELECT DISTINCT ise1.setup, ", value.columns, " FROM implementation AS imp", "\n",
+                   inp.join, "\n",
+                   ise.join, "\n",
+                   "INNER JOIN run ON ", run.join.ons, "\n",
+                   "WHERE imp.name = '", algo_id, "' AND ", where.clause, " AND run.task_id = ", task_id, "\n",
+                   ";")
+  cat(sql.exp)
+
   db_entries = lapply(parameter_names, function(parameter_name) {
     sql.exp = paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
                       FROM input
