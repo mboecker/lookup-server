@@ -76,7 +76,7 @@ LIMIT 10;
 
 
 # find all interesting setup ids in run
-SELECT DISTINCT run.setup
+SELECT DISTINCT run.setup, implementation.id, implementation.name
 FROM run
 JOIN input_setting ON input_setting.setup = run.setup
 JOIN input ON input.id = input_setting.input_id
