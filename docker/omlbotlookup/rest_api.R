@@ -49,12 +49,8 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
     return(json_error(sprintf("algo = %s: %s", algo, err_msg)))
   }
   
-  algo_ids = get_algo_ids_for_algo_name(algo)
+  algo_id = paste0("mlr.", algo)
   algo_name = algo
-  
-  if(length(algo_ids) == 0) {
-    return(json_error("No such algorithm was found in the database."))
-  }
   
   # Check needed parameters
   if (ncol(parameters) == 1) { #FIXME: Workaround for PH bug!
@@ -73,7 +69,7 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
   
   # Lookup performance in database
-  result = get_nearest_setups(algo_ids, algo_name, task, parameters)
+  result = get_nearest_setups(algo_id, algo_name, task, parameters)
   
   if(is.null(result)) {
     return(json_error("An error occured."))

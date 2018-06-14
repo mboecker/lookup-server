@@ -3,6 +3,7 @@ library("FNN")
 library("memoise")
 library("httr")
 library("ParamHelpers")
+library("data.table")
 
 source("paramToJSONList.R")
 source("helper.R")
@@ -12,9 +13,6 @@ mysql_username = "root"
 mysql_password = ""
 mysql_dbname = "openml"
 mysql_host = "127.0.0.1"
-
-# Delete the cache after 120 seconds
-cache.timeout = 120
 
 # Open database connection
 con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname, host = mysql_host)
@@ -92,30 +90,6 @@ get_algos_for_task = function(task_id) {
 }
 
 
-#' In the database, each new version of a classification algorithm has a different algo_id.
-#' This function returns every algo_id fitting to a given algo_name.
-#'
-#' @param algo_name The database is searched for this algorithm name.
-#'
-#' @return A vector containing every algo_id that fits to algo_name.
-get_algo_ids_for_algo_name = function(algo_name) {
-  # Escape algorithm name.
-  algo_name = dbEscapeStrings(con, as.character(algo_name))
-  
-  # Request every fitting algo_id.
-  sql.exp = paste0("SELECT id FROM implementation WHERE name = 'mlr.", algo_name, "'")
-  result = dbGetQuery(con, sql.exp)$id
-  
-  # If there is no result, return an empty vector.
-  if(length(result) == 0) {
-    warning("There is no algorithm in the database with this name ('", algo_name, "').")
-    return(c())
-  }
-  
-  return(as.numeric(result))
-}
-
-
 #' This function returns the algorithm name for the given id
 #'
 #' @param algo_name The database is searched for this algorithm id.
@@ -187,84 +161,55 @@ get_task_metadata = function(task_id) {
   return(list(nrow = nrow, ncol = ncol))
 }
 
-get_cached_task_metadata = memoise(get_task_metadata, ~timeout(cache.timeout))
+get_cached_task_metadata = memoise(get_task_metadata, cache = cache_filesystem("~/cache_omlbotlookup"))
 
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
-#' @param algo_ids A vector of algorithm_ids. Typically, this is either one algorithm_id of a specific algorithm implementation or a vector of every algorithm id with a specific name (as acquired by get_algo_ids_for_algo_name(..))
+#' @param algo_id Algorithm id (eg. 'mlr.classif.ranger')
 #' @param task_id A single task_id, on which the algorithm has been run.
 #' @param parameter_names A vector or list of 
 #'
 #' @return A dataframe containing: A column "setup", with the setup_id. A column "<parameter_name>" for every parameter. And one row of data for every setup, that has been run with one of the given algorithms, containing the parameter_data of that run.
-get_parameter_table = function(algo_id, task_id, parameter_names, parameter_values) {
+get_parameter_table = function(algo_id, task_id, parameter_names) {
   
-# generates something like this
-#
-# "SELECT ise1.setup, ise1.value AS mtry, ise2.value AS 'min.node.size' FROM implementation AS imp
-# INNER JOIN input AS inp1 ON imp.id = inp1.implementation_id
-# INNER JOIN input AS inp2 ON imp.id = inp2.implementation_id
-# INNER JOIN input_setting AS ise1 ON ise1.input_id = inp1.id
-# INNER JOIN input_setting AS ise2 ON ise2.input_id = inp2.id
-# INNER JOIN run ON run.setup = ise1.setup AND run.setup = ise2.setup
-# WHERE imp.name = 'mlr.classif.ranger' AND inp1.name = 'mtry' AND inp2.name = 'min.node.size' AND run.task_id = 145855
-# LIMIT 1,20;"
+  # generates something like this
+  #
+  # SELECT run.setup, tbl_params.name AS paramname, MAX(input_setting.value) as value
+  # FROM run 
+  # JOIN (
+  #   SELECT DISTINCT input.name from input INNER JOIN implementation ON implementation.id = input.implementation_id WHERE implementation.name = 'mlr.classif.ranger' AND input.name NOT LIKE 'openml%'
+  # ) AS tbl_params
+  # INNER JOIN input ON tbl_params.name = input.name
+  # LEFT JOIN input_setting ON input.id = input_setting.input_id AND input_setting.setup = run.setup
+  # WHERE run.task_id = 3
+  # GROUP BY run.setup, tbl_params.name;
   
-  algo_id = "mlr.classif.ranger"
-  parameter_names = c("mtry", "min.node.size", "num.trees", "replace", "sample.fraction", "respect.unordered.factors")
+  # NOTES:
+  # Due to the LEFT JOIN we will get many paramnames with NA values and usually for one paramname only one value that is not NA.
+  # With MAX and the grouping we drop all NAs for ine paramname value and setup pair. If only NAs exist they remain.
+  
+  parameter_names_string = paste0("'", parameter_names, "'", collapse = ",")
   task_id = 3
-  is = seq_along(parameter_names)
-  value.columns = paste0("ise", is, ".value AS '", parameter_names, "'", collapse = ", ")
-  inp.join = paste0("INNER JOIN input AS inp", is," ON imp.id = inp", is,".implementation_id", collapse = "\n")
-  ise.join = paste0("INNER JOIN input_setting AS ise", is, " ON ise", is, ".input_id = inp", is, ".id", collapse = "\n")
-  run.join.ons = paste0("run.setup = ise", is, ".setup", collapse = " AND ")
-  where.clause = paste0("inp", is, ".name = '", parameter_names, "'", collapse = " AND ")
-  sql.exp = paste0("SELECT DISTINCT ise1.setup, ", value.columns, " FROM implementation AS imp", "\n",
-                   inp.join, "\n",
-                   ise.join, "\n",
-                   "INNER JOIN run ON ", run.join.ons, "\n",
-                   "WHERE imp.name = '", algo_id, "' AND ", where.clause, " AND run.task_id = ", task_id, "\n",
-                   ";")
-  cat(sql.exp)
+  sql.exp = paste0("SELECT run.setup, tbl_params.name AS paramname, MAX(input_setting.value) as value
+              FROM run 
+              JOIN (
+                SELECT DISTINCT input.name from input INNER JOIN implementation ON implementation.id = input.implementation_id WHERE implementation.name = '", algo_id, "' AND input.name IN (", parameter_names_string, ")
+              ) AS tbl_params
+              INNER JOIN input ON tbl_params.name = input.name
+              LEFT JOIN input_setting ON input.id = input_setting.input_id AND input_setting.setup = run.setup
+              WHERE run.task_id = ", task_id, "
+              GROUP BY run.setup, tbl_params.name;")
 
-  db_entries = lapply(parameter_names, function(parameter_name) {
-    sql.exp = paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
-                      FROM input
-                      JOIN input_setting ON input_setting.input_id = input.id
-                      JOIN run ON run.setup = input_setting.setup
-                      WHERE input.name = '", parameter_name,"'
-                      AND task_id = ", task_id, "
-                      AND input.implementation_id IN (", impl_ids_as_string ,");")
-    result = dbGetQuery(con, sql.exp)
-    for (i in seq_len(ncol(result))) {
-      if (is.character(result[[i]])) {
-        result[[i]] = type.convert(result[[i]])  
-      }
-    }
-    return(result)
-  })
-  
-  if(length(db_entries) == 0) {
-    return(NULL)
-  }
-
-  # Merge results by same setup_ids
-  # FIXME: replace for loop by better merge...
-  if(length(db_entries) >= 2) {
-    table = merge(db_entries[[1]], db_entries[[2]], all = TRUE, by = "setup")
-    
-    if(length(db_entries) >= 3) {
-      for (i in 3:length(db_entries)) {
-        table = merge(table, db_entries[[i]], all = TRUE, by = "setup")
-      }
-    }
-  } else {
-    table = db_entries[[1]]
-  }
-  
-  return(table)
+  system.time({result = dbGetQuery(con, sql.exp)})
+  setDT(result)
+  setkeyv(result, "setup")
+  dt.na = result[, list(all.na = all(is.na(value))), by = .(setup)]
+  result = result[dt.na[all.na == FALSE,], ]
+  resultd = dcast(result, setup~paramname)
+  return(resultd)
 }
 
-get_cached_parameter_table = memoise(get_parameter_table, ~timeout(cache.timeout))
+get_cached_parameter_table = memoise(get_parameter_table, cache = cache_filesystem("~/cache_omlbotlookup"))
 
 
 #' Returns the default value for the given parameter on the given task
@@ -321,17 +266,17 @@ replace_na_with_defaults = function(table, algo_name, parameter_names) {
 #' We will search the OpenML database for the evaluated parameter set, which has the minimal euclidean distance to our given parameters.
 #' We then return the performance of the found point.
 #'
-#' @param algo_ids A vector of algorithm ids, which will all be treated equally. It is required, that these all have the same name (and parameters).
+#' @param algo_id Algorithm id (eg. 'mlr.classif.ranger')
 #' @param task_id A task id, given in numeric form.
 #' @param parameters A data frame of the form data.frame(parA = c(valA1, valA2), parB = c(valB1, valB2))
 #'
 #' @return A vector of setup ids of the nearest points to the given parameters in the database.
-get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
+get_nearest_setups = function(algo_id, algo_name, task_id, parameters) {
   # Table now contains a big dataframe.
   # The rows are all setups run on the task with this algorithm.
   # The columns represent different parameters.
   # The column names represent the parameter name.
-  table = get_cached_parameter_table(algo_ids, task_id, names(parameters));
+  table = get_cached_parameter_table(algo_id, task_id, names(parameters));
   
   if(is.null(table)) {
     return(list(error = "No suitable points found."))

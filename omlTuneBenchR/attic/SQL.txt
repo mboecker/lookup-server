@@ -46,9 +46,54 @@ WHERE imp.name = 'mlr.classif.ranger' AND inp1.name = 'mtry' AND inp2.name = 'mi
 LIMIT 1,4;
 
 # missing params
-SELECT * FROM implementation WHERE name = 'mlr.classif.ranger' JOIN input ON implementaion.id = input.implementation_id LIMIT 1,5;
-SELECT * FROM input WHERE name IN ('mtry', 'min.node.size') LIMIT 1,5;
+SELECT run.setup, tbl_params.name AS paramname, MAX(input_setting.value) as value
+FROM run 
+JOIN (
+  SELECT DISTINCT input.name from input INNER JOIN implementation ON implementation.id = input.implementation_id WHERE implementation.name = 'mlr.classif.ranger' AND input.name NOT LIKE 'openml%'
+) AS tbl_params
+INNER JOIN input ON tbl_params.name = input.name
+LEFT JOIN input_setting ON input.id = input_setting.input_id AND input_setting.setup = run.setup
+WHERE run.task_id = 3
+GROUP BY run.setup, tbl_params.name;
+# 4 mins 11 secs
 
+
+              
+# build param names manually to save time?
+SELECT tbl_params.setup, tbl_params.name AS paramname, MAX(input_setting.value) as value
+FROM (
+  SELECT run.setup, tmp.name
+  FROM (
+    SELECT 'mtry' AS name
+    UNION SELECT 'min.node.size') AS tmp 
+  JOIN (SELECT DISTINCT setup FROM run WHERE run.task_id = 3) AS run
+) AS tbl_params 
+INNER JOIN input ON tbl_params.name = input.name
+LEFT JOIN input_setting ON input.id = input_setting.input_id AND input_setting.setup = tbl_params.setup
+GROUP BY tbl_params.setup, tbl_params.name
+LIMIT 10;
+
+
+
+# find all interesting setup ids in run
+SELECT DISTINCT run.setup
+FROM run
+JOIN input_setting ON input_setting.setup = run.setup
+JOIN input ON input.id = input_setting.input_id
+JOIN implementation ON implementation.id = input.implementation_id
+WHERE implementation.name = 'mlr.classif.ranger' AND run.task_id = 3;
+
+SELECT DISTINCT setup
+FROM run
+JOIN input_setting ON input_setting.setup = run.setup;
+JOIN input ON input.id = (
+  SELECT id FROM input WHERE input.id = input_setting.input_id LIMIT 1
+)
+LIMIT 10;
+WHERE run.setup > 137000 AND run.setup < 138000;
+(
+  SELECT setup FROM input_setting WHERE 
+)
 
 
 mysql> SELECT * FROM input LIMIT 100,5;
