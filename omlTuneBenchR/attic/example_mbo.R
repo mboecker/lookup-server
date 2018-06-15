@@ -5,7 +5,7 @@ startOmlTuneServer()
 
 task.id = 3
 learner.name = "classif.ranger"
-of = makeOmlBenchFunction(learner.name, task.id)
+of = makeOmlBenchFunction(learner.name, task.id, include.extras = TRUE)
 par.set = getParamSet(of)
 x = sampleValue(par.set)
 system.time({res = of(x)})

@@ -14,6 +14,8 @@ mysql_password = ""
 mysql_dbname = "openml"
 mysql_host = "127.0.0.1"
 
+version = "DEBUG"
+
 # Open database connection
 con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname, host = mysql_host)
 
@@ -21,6 +23,7 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 # See /docker/preparation/prepare_parameter_ranges.R for instructions.
 # This file contains parameter range data obtained from the omlbot-sourcecode.
 parameter_ranges = readRDS("parameter_ranges.Rds")
+names(parameter_ranges) = paste0("mlr.", names(parameter_ranges))
 
 
 #' Return a list of parameter definitions. This list contains every necessary parameter for the given algorithm.
@@ -28,15 +31,15 @@ parameter_ranges = readRDS("parameter_ranges.Rds")
 #' @param task_id This is `task_id` from the table `run` in the database.
 #'
 #' @return A named list with one entry for each needed parameter.
-get_params_for_algo = function(algo_name) {
+get_params_for_algo = function(algo_id) {
   # Load parameter data from pre-saved file "parameter_ranges".
   # See call to readRDS() on top of this file.
     
-  if(is.null(parameter_ranges[[algo_name]])) {
-    warning(paste0("No parameters found in `parameter_ranges` for algorithm name '", algo_name, "'."))
+  if(is.null(parameter_ranges[[algo_id]])) {
+    warning(paste0("No parameters found in `parameter_ranges` for algorithm name '", algo_id, "'."))
     return(list())
   } else {
-    params = parameter_ranges[[algo_name]]$pars
+    params = parameter_ranges[[algo_id]]$pars
     
     # We convert the data from some ParamHelper-class to simple JSON.
     params = lapply(params, paramToJSONList)
@@ -70,7 +73,7 @@ get_algos_for_task = function(task_id) {
   input_ids = paste0("SELECT DISTINCT input_id FROM input_setting WHERE setup IN (", setup_ids, ")")
   
   # This requests the implementation_id to every of these input_ids.
-  sql.exp = paste0("SELECT DISTINCT implementation_id, implementation.name, implementation.fullName FROM input INNER JOIN implementation ON implementation.id = input.implementation_id AND input.id IN (", input_ids, ") ORDER BY implementation.name")
+  sql.exp = paste0("SELECT DISTINCT implementation.name FROM input INNER JOIN implementation ON implementation.id = input.implementation_id AND input.id IN (", input_ids, ") ORDER BY implementation.name")
   
   # Run query.
   result = dbGetQuery(con, sql.exp)
@@ -79,51 +82,22 @@ get_algos_for_task = function(task_id) {
     warning("The given task (task_id = ",task_id,") was not found in the database.")
     return(c())
   }
-  
-  # Group by name.
-  d = as.list(aggregate(implementation_id ~ name, result, append, c()))
-  return_value = d$implementation_id
-  names(return_value) = d$name
-  
-  # Return in the form list(algo_name = c(impl_id, impl_id, ...), algo_name = ...)
-  return(return_value)
-}
-
-
-#' This function returns the algorithm name for the given id
-#'
-#' @param algo_name The database is searched for this algorithm id.
-#'
-#' @return The algorithm name fitting to the algorithm id.
-get_algo_name_for_algo_id = function(algo_id) {
-  algo_id = as.numeric(algo_id)
-  
-  sql.exp = paste0("SELECT name FROM implementation WHERE id = '", algo_id, "'")
-  result = dbGetQuery(con, sql.exp)$name
-  
-  if(length(result) == 0) {
-    warning("There is no algorithm in the database with this id (", algo_id ,").")
-    return(NULL)
-  }
-  
-  if(substr(result, start=1, stop = 4) == "mlr.") {
-    result = substring(result, first = 5)
-  }
-  
-  return(result)
+   
+  # Return vector with algo_ids c("mlr.classif.glmnet", ...)
+  return(result$name)
 }
 
 
 #' Checks if the supplied parameter list is correct according to the data stored in parameter_ranges.
 #'
-#' @param algo_name The algorithm name these parameters belong to
-#' @param params A named list containing the parameters and their values
+#' @param algo_id The algorithm name these parameters belong to
+#' @param par_vals A named list containing the parameters and their values
 #'
 #' @return TRUE, on success and a named list containing $error, on failure
-is_parameter_list_ok = function(algo_name, params) {
-  assertChoice(algo_name, names(parameter_ranges))
-  par_set = parameter_ranges[[algo_name]]
-  res = tryCatch(isFeasible(par_set, params), error = function(e) e)
+is_parameter_list_ok = function(algo_id, par_vals) {
+  assertChoice(algo_id, names(parameter_ranges))
+  par_set = parameter_ranges[[algo_id]]
+  res = tryCatch(isFeasible(par_set, par_vals), error = function(e) e)
   if (inherits(res, c("try-error", "error"))) {
     as.character(res)
   } else if (!isTRUE(res)) {
@@ -206,45 +180,30 @@ get_parameter_table = function(algo_id, task_id, parameter_names) {
   dt.na = result[, list(all.na = all(is.na(value))), by = .(setup)]
   result = result[dt.na[all.na == FALSE,], ]
   resultd = dcast(result, setup~paramname)
+  # convert to numeric if possible
+  for (i in parameter_names) {
+    if (is.character(resultd[[i]])) {
+      resultd[[i]] = type.convert(resultd[[i]])
+    }
+  }
   return(resultd)
 }
 
 get_cached_parameter_table = memoise(get_parameter_table, cache = cache_filesystem("~/cache_omlbotlookup"))
 
 
-#' Returns the default value for the given parameter on the given task
-#'
-#' @param algo_name The algorithm name the parameter belongs to.
-#' @param param_name The parameter name.
-get_parameter_default = function(algo_name, param_name) {
-  params = get_params_for_algo(algo_name)
-  def = params[[param_name]]$default
-  return(def)
-}
-
-
-#' This returns the inverse-transformation function specified for this parameter.
-#'
-#' @param algo_name The algorithm name the parameter belongs to.
-#' @param param_name The parameter name.
-get_inverse_trafo = function(algo_name, param_name) {
-  params = get_params_for_algo(algo_name)
-  return(params[[param_name]]$trafo.inverse)
-}
-
-
 #' This replaces every NA in the given table with the correct default value.
 #'
 #' @param table The parameter table, as generated by get_parameter_table(...)
-#' @param algo_name The algorithm name the parameters belong to.
+#' @param algo_id The algorithm name the parameters belong to.
 #' @param param_names The parameter names as a vector.
 #' @param task_id This is sometimes needed, because some defaults are data-dependent.
-replace_na_with_defaults = function(table, algo_name, parameter_names) {
+replace_na_with_defaults = function(table, algo_id, parameter_names) {
   
   for(parameter_name in parameter_names) {
     nas = is.na(table[[parameter_name]])
     if(any(nas)) {
-      def = get_parameter_default(algo_name, parameter_name)
+      def = parameter_ranges[[algo_id]]$pars[[parameter_name]]$default
       if (!is.null(def)) {
         table[[parameter_name]][nas] = def
       }
@@ -269,42 +228,50 @@ replace_na_with_defaults = function(table, algo_name, parameter_names) {
 #'
 #' @param algo_id Algorithm id (eg. 'mlr.classif.ranger')
 #' @param task_id A task id, given in numeric form.
-#' @param parameters A data frame of the form data.frame(parA = c(valA1, valA2), parB = c(valB1, valB2))
+#' @param par_vals A data frame of the form data.frame(parA = c(valA1, valA2), parB = c(valB1, valB2))
 #'
 #' @return A vector of setup ids of the nearest points to the given parameters in the database.
-get_nearest_setups = function(algo_id, algo_name, task_id, parameters) {
+get_nearest_setups = function(algo_id, task_id, par_vals) {
   # Table now contains a big dataframe.
   # The rows are all setups run on the task with this algorithm.
   # The columns represent different parameters.
   # The column names represent the parameter name.
-  table = get_cached_parameter_table(algo_id, task_id, names(parameters));
+  table = get_cached_parameter_table(algo_id, task_id, sort(names(par_vals)))
   
   if(is.null(table)) {
     return(list(error = "No suitable points found."))
   }
   
   # Fill in defaults for NAs
-  table = replace_na_with_defaults(table, algo_name, names(parameters))
+  table = replace_na_with_defaults(table, algo_id, names(par_vals))
   
-  for(parameter_name in names(parameters)) {
+  pars = parameter_ranges[[algo_id]]$pars
+  pars_scaled = pars
+  uses_trafo = sapply(pars, function(x) !is.null(x$data.trafo))
+  if (any(uses_trafo)) {
+    dict = get_cached_task_metadata(task_id)
+  }
+  for(parameter_name in names(par_vals)) {
     
     # Transform data.independet params that are not defined like in the data base to data.dependent  
-    data.trafo = parameter_ranges[[algo_name]]$pars[[parameter_name]]$data.trafo
+    data.trafo = pars[[parameter_name]]$data.trafo
     if (!is.null(data.trafo)) {
-      dict = get_cached_task_metadata(task_id)
-      parameters[[parameter_name]] = data.trafo(dict = dict, par = parameters)
+      par_vals[[parameter_name]] = data.trafo(dict = dict, par = par_vals)
+      pars_scaled[[parameter_name]]$lower = data.trafo(dict = dict, par = setNames(list(pars_scaled[[parameter_name]]$lower), parameter_name))
+      pars_scaled[[parameter_name]]$upper = data.trafo(dict = dict, par = setNames(list(pars_scaled[[parameter_name]]$upper), parameter_name))
     }
     
     # Try to apply inverse transformation function, if one is set.
-    inverse.trafo = get_inverse_trafo(algo_name, parameter_name)
-    
+    inverse.trafo = pars[[parameter_name]]$trafo.inverse
     if(!is.null(inverse.trafo)) {
-      table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
+      table[[parameter_name]] = inverse.trafo(table[[parameter_name]])
+      pars_scaled[[parameter_name]]$lower = inverse.trafo(pars_scaled[[parameter_name]]$lower)
+      pars_scaled[[parameter_name]]$upper = inverse.trafo(pars_scaled[[parameter_name]]$upper)
     }
     
-    if(!is.numeric(parameters[[parameter_name]])) {
-      # We subset the table to remove the factorial parameters, which are not equal to the request.
-      table = table[table[[parameter_name]] == parameters[[parameter_name]],]
+    if(!is.numeric(par_vals[[parameter_name]])) {
+      # We subset the table to remove the factorial par_vals, which are not equal to the request.
+      table = table[table[[parameter_name]] == par_vals[[parameter_name]],]
       
       # As the "distance" to this parameter has been "evaluated", we can remove it from the table, because we can't sort by it.
       table[[parameter_name]] = NULL
@@ -312,21 +279,18 @@ get_nearest_setups = function(algo_id, algo_name, task_id, parameters) {
   }
 
   # No suitable points were found.
-  if(dim(table)[1] == 0) {
+  if (nrow(table) == 0) {
     return(list(error = "No suitable points were found."))
   }
 
-  # Remove NAs
-  table = table[complete.cases(table), , drop = FALSE]
-
-  query = parameters[names(table)[-1]]
+  query = par_vals[names(table)[-1]]
 
   # scale table and query to 01
-  mins = sapply(table[, -1, drop = FALSE], min)
-  maxs = sapply(table[, -1, drop = FALSE], max)
-  table.scaled = scale(table[, -1, drop = FALSE], center = mins, scale = maxs - mins)
-  table[, 2:ncol(table)] = table.scaled
-  query = as.data.frame(scale(query, center = mins, scale = maxs - mins))
+  mins = sapply(pars_scaled[names(query)], function(x) x$lower)
+  maxs = sapply(pars_scaled[names(query)], function(x) x$upper)
+  table.scaled = scale(as.matrix(table[, names(query), with = FALSE]), center = mins, scale = maxs - mins)
+  table[, names(query) := as.data.table(table.scaled)] 
+  query = scale(as.data.frame(query), center = mins, scale = maxs - mins)
 
   # find nearest neighbour
   
@@ -345,7 +309,7 @@ get_nearest_setups = function(algo_id, algo_name, task_id, parameters) {
 #' @param setup_ids The setup ids of interest.
 #'
 #' @return A list, with names equal to the setup ids.
-get_setup_data = function(task_id, setup_ids) {
+get_setup_data = function(task_id, setup_ids, algo_id) {
   sql.exp = paste0("SELECT setup, input.implementation_id, input.name, input_setting.value
                     FROM input_setting JOIN input ON input.id = input_setting.input_id
                     WHERE setup IN (",paste0(setup_ids,collapse=", "),")")
@@ -354,29 +318,28 @@ get_setup_data = function(task_id, setup_ids) {
   return_value = lapply(setup_ids, function(setup_id) {
     rows = result[result$setup == setup_id, -1, drop = FALSE]
     impl_id = rows[[1]][1]
-    algo_name = get_algo_name_for_algo_id(impl_id)
-    params = as.list(rows$value)
-    names(params) = rows$name
+    par_vals = as.list(rows$value)
+    names(par_vals) = rows$name
 
     # Remove openml. parameters
-    params = params[substr(names(params), start = 1, stop = 7) != "openml."]
+    par_vals = par_vals[substr(names(par_vals), start = 1, stop = 7) != "openml."]
     
-    # Find out which parameters are not present in the database
-    needs_default_names = parameter_ranges[[algo_name]]$pars
-    needs_default_names[names(params)] = NULL
+    # Find out which par_vals are not present in the database
+    needs_default_names = parameter_ranges[[algo_id]]$pars
+    needs_default_names[names(par_vals)] = NULL
     needs_default_names = names(needs_default_names)
 
-    # Get default values for these parameters
+    # Get default values for these par_vals
     default_values = lapply(needs_default_names, function(param_name) {
-      get_parameter_default(algo_name, param_name)
+      parameter_ranges[[algo_id]]$pars[[param_name]]$default
     })
     names(default_values) = needs_default_names 
     
     # Add defaults
-    params = append(params, default_values)
+    par_vals = append(par_vals, default_values)
     
-    for (i in seq_along(params)) {
-      if (is.character(params[[i]])) params[[i]] = type.convert(params[[i]])  
+    for (i in seq_along(par_vals)) {
+      if (is.character(par_vals[[i]])) par_vals[[i]] = type.convert(par_vals[[i]])  
     }
     
     # Now, we request performance data on the nearest point given by the database.
@@ -399,7 +362,7 @@ get_setup_data = function(task_id, setup_ids) {
     performance_data = as.list(result$value)
     names(performance_data) = function_names
 
-    return(c(list(impl_id = impl_id, run_id = rid, performance = performance_data), params))
+    return(c(list(impl_id = impl_id, run_id = rid, performance = performance_data), par_vals))
   })
 
   return_value = do.call(rbind, return_value)

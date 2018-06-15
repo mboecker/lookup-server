@@ -12,7 +12,7 @@ rest_algos <- function(task = NULL) {
     return(json_error(error_msg))
   }
   
-  possible_algos = substring(names(get_algos_for_task(task_id)), 5) # remove "mlr." from algo ids
+  possible_algos = substring(get_algos_for_task(task_id), 5) # remove "mlr." from algo ids
   
   return(list(possible_algo_names = possible_algos))
 }
@@ -50,18 +50,17 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
   
   algo_id = paste0("mlr.", algo)
-  algo_name = algo
   
   # Check needed parameters
   if (ncol(parameters) == 1) { #FIXME: Workaround for PH bug!
     parameter_list = lapply(parameters[, 1, drop = TRUE], function(x) setNames(list(x), names(parameters)))
   } else {
     parameter_list = dfRowsToList(
-      parameters[, getParamIds(parameter_ranges[[algo]]), drop = FALSE], 
-      parameter_ranges[[algo]],
+      parameters[, getParamIds(parameter_ranges[[algo_id]]), drop = FALSE], 
+      parameter_ranges[[algo_id]],
       ints.as.num = TRUE)  
   }
-  parameter_status = sapply(parameter_list, function(x) is_parameter_list_ok(algo_name, x))
+  parameter_status = sapply(parameter_list, function(x) is_parameter_list_ok(algo_id, x))
   parameter_status_ok = sapply(parameter_status, isTRUE)
   if (!all(parameter_status_ok)) {
     error_messages = paste0("#", which(!parameter_status_ok), ": ", parameter_status[!parameter_status_ok], collapse = ", ")
@@ -69,7 +68,7 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
   
   # Lookup performance in database
-  result = get_nearest_setups(algo_id, algo_name, task, parameters)
+  result = get_nearest_setups(algo_id, task, parameters)
   
   if(is.null(result)) {
     return(json_error("An error occured."))
@@ -78,7 +77,7 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   if(!is.null(result$error)) {
     return(json_error(paste(result$error, collapse = ", ")))
   } else {
-    performance = get_setup_data(task, result$setup_ids)
+    performance = get_setup_data(task, result$setup_ids, algo_id)
     return(cbind(result, performance))
   }
 }
@@ -92,21 +91,10 @@ rest_params = function(algo = NULL) {
     return(json_error(error_msg))
   }
   
-  if(is_number(algo)) {
-    algo_name = get_algo_name_for_algo_id(algo)
-    
-    if(length(algo_name) == 0) {
-      error_msg = names(last_warning)[1]
-      return(json_error(error_msg))
-    }
-  } else {
-    algo_name = algo
-  }
-  
-  params = get_params_for_algo(algo_name)
+  params = get_params_for_algo(paste0("mlr.", algo))
   
   if(length(params) == 0) {
-    error_msg = paste0("No parameter data found for algorithm '", algo_name, "'.")
+    error_msg = paste0("No parameter data found for algorithm '", algo, "'.")
     return(json_error(error_msg))
   }
   
