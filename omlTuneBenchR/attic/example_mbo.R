@@ -21,6 +21,8 @@ ctrl = setMBOControlInfill(control = ctrl, crit = crit.cb)
 ctrl = setMBOControlTermination(control = ctrl, iters = 20)
 mbo.res = mbo(fun = of, design = des, control = ctrl)
 mbo.res
+opdf = as.data.frame(mbo.res$opt.path)
+opdf[mbo.res$best.ind,]
 
 ## random search
 

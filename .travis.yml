@@ -14,7 +14,6 @@ before_install:
 before_script:
 - R --no-save <<< 'library("devtools"); document()'
 - bash ../docker/rebuild-omlbotlookup.sh
-- bash ../docker/remove-omlbotlookup.sh
 - bash ../docker/run-omlbotlookup.sh
-- sleep 30
+- sleep 120
 - bash ../docker/import-task3-data.sh
