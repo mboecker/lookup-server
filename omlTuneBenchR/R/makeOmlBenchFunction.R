@@ -30,12 +30,14 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
     y = sapply(res, function(x) x$performance$accuracy, simplify = TRUE) # y will be the accuracy as a numeric vector
     # add extras as a non-nested list. each i-th item corresponds to the i-th entry in the y vecotr
     if (include.extras) {
-      attr(y, "extras") = lapply(res, function(x) {
+      extras = lapply(res, function(x) {
         perfs = x$performance
         perfs$accuracy = NULL
         x$performance = NULL
         c(x, perfs)
-      })  
+      })
+      if (length(y) == 1) extras = unlist(extras, recursive = FALSE)
+      attr(y, "extras") = extras
     }
     
     return(y)
