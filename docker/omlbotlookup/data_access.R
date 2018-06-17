@@ -23,7 +23,6 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 # See /docker/preparation/prepare_parameter_ranges.R for instructions.
 # This file contains parameter range data obtained from the omlbot-sourcecode.
 parameter_ranges = readRDS("parameter_ranges.Rds")
-names(parameter_ranges) = paste0("mlr.", names(parameter_ranges))
 
 
 #' Return a list of parameter definitions. This list contains every necessary parameter for the given algorithm.

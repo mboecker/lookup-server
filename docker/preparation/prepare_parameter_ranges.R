@@ -3,6 +3,7 @@ library("ranger")
 library("kknn")
 library("e1071")
 library("xgboost")
+library("glmnet")
 library("checkmate")
 library("BBmisc")
 
@@ -15,6 +16,10 @@ source("https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botSetLearn
 parameters = function() {
   raw_data = getMultipleLearners()
   names(raw_data) = extractSubList(raw_data, element = c("learner", "id"))
+  
+  # Because in the database every algo_id starts with "mlr.", we need to add this.
+  names(raw_data) = paste0("mlr.", names(raw_data))
+  
   bot.par.sets = extractSubList(raw_data, "param.set", simplify = FALSE)
   
   # we need the defaults of the learners because they are missing in the OpenML Database
@@ -31,11 +36,11 @@ parameters = function() {
   
   # Manually re-define the default for this "ranger"-parameter, because the new
   # "ignore" option is not implemented in the database but only in mlr.
-  bot.par.sets$classif.ranger$pars$respect.unordered.factors$default = "FALSE"
+  bot.par.sets$mlr.classif.ranger$pars$respect.unordered.factors$default = "FALSE"
   
   # Define transformations based on data to calculate the correct data-independent values for comparison.
-  bot.par.sets$classif.ranger$pars$min.node.size$data.trafo = function(par, dict) round(2^(log(dict$nrow, 2) * par$min.node.size))
-  bot.par.sets$classif.ranger$pars$mtry$data.trafo = function(par, dict) ceiling(dict$ncol * par$mtry)
+  bot.par.sets$mlr.classif.ranger$pars$min.node.size$data.trafo = function(par, dict) round(2^(log(dict$nrow, 2) * par$min.node.size))
+  bot.par.sets$mlr.classif.ranger$pars$mtry$data.trafo = function(par, dict) ceiling(dict$ncol * par$mtry)
   
   # manually add inverse
   for (n.lrn in names(bot.par.sets)) {
