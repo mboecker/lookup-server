@@ -57,7 +57,7 @@ getSupportedDiscreteValues = function() {
 
 checkDiscreteJSON = function(par.vals, param.id = character()) {
   value.classes = sapply(par.vals, class)
-  if (!any(value.classes %in% getSupportedDiscreteValues())) {
+  if (any(!value.classes %in% getSupportedDiscreteValues())) {
     stopf("The values for Param %s contain currently unsupported types: %s", param.id, names(value.classes[value.classes %nin% getSupportedDiscreteValues()]))
   }
   par.vals
