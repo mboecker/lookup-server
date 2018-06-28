@@ -143,7 +143,6 @@ insertIntoDB = function(task_id, algo_id, t) {
       if(parameter_name == "setup") {
         mysql_type = "INTEGER UNSIGNED"
       }
-      cat(sprintf("parameter %s type %s, mysql type %s\r\n", parameter_name, class_of_parameter, mysql_type))
       return(sprintf("`%s` %s", parameter_name, mysql_type))
     }))
     parameters = paste0(parameters, collapse = ", ")
