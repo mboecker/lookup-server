@@ -173,11 +173,12 @@ writeRows = function(algo_id, xt) {
     
     t_as_str = apply(t, 1, function(x) {
       strs = sapply(x, function(y) {
+        y = trimws(y)
         if(is.na(y)) {
           "NULL"
         } else {
-          if(y == T || y == F) {
-            sprintf("'%s'", y != F)       
+          if(y == 'TRUE' || y == 'FALSE') {
+            sprintf("'%s'", ifelse(y == 'TRUE', 1, 0))
           } else {
             sprintf("'%s'", y)        
           }
@@ -206,6 +207,11 @@ updateDatabase = function(task_id, algo_id) {
   cat(sprintf("Removing %.1f%% (%d/%d) of runs, because they had missing values.\r\n", (sum(!cc) * 100.0 / dim(t)[1]), sum(!cc), dim(t)[1]))
   
   t = t[cc,]
+  
+  if(algo_id == "classif.ranger") {
+    MIN_SETUP = 5991158 # Runs before this are reference runs, remove them.
+    t = t[t[,setup >= MIN_SETUP],]
+  }
   
   insertIntoDB(task_id, algo_id, t)
 }
