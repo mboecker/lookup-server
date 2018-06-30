@@ -26,7 +26,7 @@ getTableFromDB = function(task_id, algo_id) {
   parameter_names = names(parameter_ranges[[algo_id]]$pars)
   
   db_entries = lapply(parameter_names, function(parameter_name) {
-    sql.exp = paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
+    sql.exp = paste0("SELECT DISTINCT run.rid, input_setting.setup, input_setting.value AS `", parameter_name, "`
                      FROM ",mysql_dbname_from, ".input
                      JOIN ",mysql_dbname_from, ".input_setting ON input_setting.input_id = input.id
                      JOIN ",mysql_dbname_from, ".run ON run.setup = input_setting.setup
@@ -48,20 +48,42 @@ getTableFromDB = function(task_id, algo_id) {
   }
   
   # Merge results by same setup_ids
-  # FIXME: replace for loop by better merge...
   if(length(db_entries) >= 2) {
-    table = merge(db_entries[[1]], db_entries[[2]], all = TRUE, by = "setup")
+    t = merge(db_entries[[1]], db_entries[[2]], all = TRUE, by = c("rid", "setup"))
     
     if(length(db_entries) >= 3) {
       for (i in 3:length(db_entries)) {
-        table = merge(table, db_entries[[i]], all = TRUE, by = "setup")
+        t = merge(t, db_entries[[i]], all = TRUE, by = c("rid", "setup"))
       }
     }
   } else {
-    table = db_entries[[1]]
+    t = db_entries[[1]]
   }
   
-  return(table)
+  setDT(t)
+  
+  # Add evaluation measures from `evaluation`-table.
+  if(nrow(t) > 0) {
+    function_ids = c(4,45,54,59,63)
+    method_names = c("auc","accuracy","rmse","scimark","runtime")
+    
+    run_ids = sprintf("(%s)", paste0(simplify2array(t[,"rid"]), collapse=", "))
+    
+    measures = sprintf("SELECT `source` AS `rid`, `function_id`, `value` FROM %s.`evaluation` WHERE `source` IN %s AND `function_id` IN (4,45,54,59,63)", mysql_dbname_from, run_ids)
+    result = dbGetQuery(con, measures)
+  
+    # Merge evaluation measures one-by-one into the table.
+    for (i in seq_along(function_ids)) {
+      function_id = function_ids[i]
+      method_name = method_names[i]
+      t2 = result[result[, "function_id"] == function_id, c("rid","value")]
+      t3 = data.table(rid = t2$rid)
+      t3[[method_name]] = t2$value
+      t = merge(t, t3, all = TRUE, by = "rid")
+    }
+  }
+
+  return(t)
 }
 
 #' Return a list of parameter definitions. This list contains every necessary parameter for the given algorithm.
@@ -143,6 +165,9 @@ insertIntoDB = function(task_id, algo_id, t) {
       if(parameter_name == "setup") {
         mysql_type = "INTEGER UNSIGNED"
       }
+      if(parameter_name == "rid") {
+        mysql_type = "INTEGER UNSIGNED"
+      }
       return(sprintf("`%s` %s", parameter_name, mysql_type))
     }))
     parameters = paste0(parameters, collapse = ", ")
@@ -150,8 +175,6 @@ insertIntoDB = function(task_id, algo_id, t) {
     dbExecute(con, sql.exp)
     
     t[,"task_id"] = task_id
-    
-    cat(sprintf("Inserting %i rows.\r\n", nrow(t)))
     
     writeRows(algo_id, t)
   }
@@ -203,7 +226,7 @@ updateDatabase = function(task_id, algo_id) {
     cc = complete.cases(t)
   }
   
-  cat(sprintf("Removing %.1f%% (%d/%d) of runs, because they had missing values.\r\n", (sum(!cc) * 100.0 / dim(t)[1]), sum(!cc), dim(t)[1]))
+  cat(sprintf("Removing %.1f%% (%d/%d) of runs.\r\n", (sum(!cc) * 100.0 / dim(t)[1]), sum(!cc), dim(t)[1]))
   
   t = t[cc,]
   
@@ -242,7 +265,7 @@ for(i in seq_along(task_ids)) {
     ij = (i-1) * algo_count + j
     task_id = task_ids[i]
     algo_id = algo_ids[j]
-    cat(sprintf("(Progress: %d / %d - %.0f%%) Importing Task %d (%d / %d) + Algorithm %s (%d / %d) ...\r\n",
+    cat(sprintf("(Progress: %d / %d - %.0f%%) Importing Task %d (%d / %d) + Algorithm %s (%d / %d):\t",
                     ij, algo_count*task_count, (100*ij / (algo_count*task_count)),task_id, i, task_count, algo_id, j, algo_count))
     updateDatabase(task_ids[i], algo_ids[j])
   }
