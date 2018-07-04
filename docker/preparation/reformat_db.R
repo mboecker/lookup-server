@@ -69,7 +69,7 @@ getTableFromDB = function(task_id, algo_id) {
     for (i in seq_along(function_ids)) {
       function_id = function_ids[i]
       method_name = method_names[i]
-      t2 = result[result[, "function_id"] == function_id, c("rid","value")]
+      t2 = result[result[["function_id"]] == function_id, c("rid","value")]
       t3 = data.table(rid = t2$rid)
       t3[[method_name]] = t2$value
       t = merge(t, t3, all = TRUE, by = "rid")
