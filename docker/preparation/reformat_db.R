@@ -47,17 +47,10 @@ getTableFromDB = function(task_id, algo_id) {
     return(NULL)
   }
   
+  t = db_entries[[1]]
   # Merge results by same setup_ids
-  if(length(db_entries) >= 2) {
-    t = merge(db_entries[[1]], db_entries[[2]], all = TRUE, by = c("rid", "setup"))
-    
-    if(length(db_entries) >= 3) {
-      for (i in 3:length(db_entries)) {
-        t = merge(t, db_entries[[i]], all = TRUE, by = c("rid", "setup"))
-      }
-    }
-  } else {
-    t = db_entries[[1]]
+  for (i in seq_along(db_entries)[-1]) {
+    t = merge(t, db_entries[[i]], all = TRUE, by = c("rid", "setup"))
   }
   
   setDT(t)
