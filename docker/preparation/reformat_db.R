@@ -79,28 +79,6 @@ getTableFromDB = function(task_id, algo_id) {
   return(t)
 }
 
-#' Return a list of parameter definitions. This list contains every necessary parameter for the given algorithm.
-#'
-#' @param task_id This is `task_id` from the table `run` in the database.
-#'
-#' @return A named list with one entry for each needed parameter.
-get_params_for_algo = function(algo_name) {
-  # Load parameter data from pre-saved file "parameter_ranges".
-  # See call to readRDS() on top of this file.
-  
-  if(is.null(parameter_ranges[[algo_name]])) {
-    warning(paste0("No parameters found in `parameter_ranges` for algorithm name '", algo_name, "'."))
-    return(list())
-  } else {
-    params = parameter_ranges[[algo_name]]$pars
-    
-    # We convert the data from some ParamHelper-class to simple JSON.
-    params = lapply(params, paramToJSONList)
-    
-    return(params)
-  }
-}
-
 #' Returns the default value for the given parameter on the given task
 #'
 #' @param algo_name The algorithm name the parameter belongs to.
@@ -150,6 +128,8 @@ insertIntoDB = function(task_id, algo_id, t) {
         mysql_type = "VARCHAR(255)"
       }
       if(class_of_parameter == "logical") {
+        col = c(sapply(sapply(t[, ..parameter_name], as.logical), as.numeric))
+        t[, (parameter_name) := col]
         mysql_type = "BOOL"
       }
       if(class_of_parameter == "numeric") {
@@ -174,38 +154,42 @@ insertIntoDB = function(task_id, algo_id, t) {
 }
 
 writeRows = function(algo_id, xt) {
-  colnames = paste0(sprintf("`%s`", names(xt)), collapse = ", ")
-  
-  CHUNK_SIZE = 200
-
-  for(i in 1:(nrow(xt)/CHUNK_SIZE)) {
-    upper_bound = (i * CHUNK_SIZE)
-    if(upper_bound > nrow(xt)) {
-      upper_bound = nrow(xt)
-    }
-    
-    t = xt[((i-1) * CHUNK_SIZE) : upper_bound, ]
-    
-    t_as_str = apply(t, 1, function(x) {
-      strs = sapply(x, function(y) {
-        y = trimws(y)
-        if(is.na(y)) {
-          "NULL"
-        } else {
-          if(y == 'TRUE' || y == 'FALSE') {
-            sprintf("'%s'", ifelse(y == 'TRUE', 1, 0))
-          } else {
-            sprintf("'%s'", y)        
-          }
-        }
-      })
-      sprintf("(%s)", paste0(strs, collapse=", "))
-    })
-    t_as_str = paste0(t_as_str, collapse = ", ")
-    sql.exp = sprintf("INSERT INTO %s.`%s` (%s) VALUES %s", mysql_dbname_to, algo_id, colnames, t_as_str)
-    dbExecute(con, sql.exp)
-  }
+  dbWriteTable(con, algo_id, xt, append = T, row.names = F)
 }
+
+# writeRows = function(algo_id, xt) {
+#   colnames = paste0(sprintf("`%s`", names(xt)), collapse = ", ")
+#   
+#   CHUNK_SIZE = 200
+# 
+#   for(i in 1:(nrow(xt)/CHUNK_SIZE)) {
+#     upper_bound = (i * CHUNK_SIZE)
+#     if(upper_bound > nrow(xt)) {
+#       upper_bound = nrow(xt)
+#     }
+#     
+#     t = xt[((i-1) * CHUNK_SIZE) : upper_bound, ]
+#     
+#     t_as_str = apply(t, 1, function(x) {
+#       strs = sapply(x, function(y) {
+#         y = trimws(y)
+#         if(is.na(y)) {
+#           "NULL"
+#         } else {
+#           if(y == 'TRUE' || y == 'FALSE') {
+#             sprintf("'%s'", ifelse(y == 'TRUE', 1, 0))
+#           } else {
+#             sprintf("'%s'", y)        
+#           }
+#         }
+#       })
+#       sprintf("(%s)", paste0(strs, collapse=", "))
+#     })
+#     t_as_str = paste0(t_as_str, collapse = ", ")
+#     sql.exp = sprintf("INSERT INTO %s.`%s` (%s) VALUES %s", mysql_dbname_to, algo_id, colnames, t_as_str)
+#     dbExecute(con, sql.exp)
+#   }
+# }
 
 updateDatabase = function(task_id, algo_id) {
   t = getTableFromDB(task_id, algo_id)
