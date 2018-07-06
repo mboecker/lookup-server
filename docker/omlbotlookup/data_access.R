@@ -1,3 +1,4 @@
+library("data.table")
 library("RMySQL")
 library("FNN")
 library("memoise")
@@ -10,7 +11,7 @@ source("helper.R")
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
-mysql_dbname = "openml"
+mysql_dbname = "openml_exporting"
 mysql_host = "127.0.0.1"
 
 # Delete the cache after 120 seconds
@@ -52,9 +53,7 @@ get_params_for_algo = function(algo_name) {
 #'
 #' @return A vector containing every task_id, which has been evaluated at least once.
 get_possible_task_ids = function() {
-  sql.exp = "SELECT DISTINCT task_id FROM run"
-  r = dbGetQuery(con, sql.exp)$task_id
-  return(simplify2array(r))
+  return(3)
 }
 
 #' Which algorithms have been run on this task?
@@ -62,33 +61,15 @@ get_possible_task_ids = function() {
 #' @param task_id This is `task_id` from the table `run` in the database.
 #'
 #' @return A named list, containing one entry for each different algorithm name, and the algorithm ids for each algorithm name.
-get_algos_for_task = function(task_id) {
-  task_id = as.numeric(task_id)
-  
-  # This requests every run setup with the given task.
-  setup_ids = paste0("SELECT DISTINCT setup FROM run WHERE task_id = ", task_id)
-  
-  # This requests the input_ids on every of these setups.
-  input_ids = paste0("SELECT DISTINCT input_id FROM input_setting WHERE setup IN (", setup_ids, ")")
-  
+get_algos = function() {
   # This requests the implementation_id to every of these input_ids.
-  sql.exp = paste0("SELECT DISTINCT implementation_id, implementation.name, implementation.fullName FROM input INNER JOIN implementation ON implementation.id = input.implementation_id AND input.id IN (", input_ids, ") ORDER BY implementation.name")
+  sql.exp = paste0("SHOW TABLES")
   
   # Run query.
-  result = dbGetQuery(con, sql.exp)
-  
-  if(dim(result)[1] == 0) {
-    warning("The given task (task_id = ",task_id,") was not found in the database.")
-    return(c())
-  }
-  
-  # Group by name.
-  d = as.list(aggregate(implementation_id ~ name, result, append, c()))
-  return_value = d$implementation_id
-  names(return_value) = d$name
+  result = dbGetQuery(con, sql.exp)[[1]]
   
   # Return in the form list(algo_name = c(impl_id, impl_id, ...), algo_name = ...)
-  return(return_value)
+  return(c(result))
 }
 
 
@@ -114,31 +95,6 @@ get_algo_ids_for_algo_name = function(algo_name) {
   
   return(as.numeric(result))
 }
-
-
-#' This function returns the algorithm name for the given id
-#'
-#' @param algo_name The database is searched for this algorithm id.
-#'
-#' @return The algorithm name fitting to the algorithm id.
-get_algo_name_for_algo_id = function(algo_id) {
-  algo_id = as.numeric(algo_id)
-  
-  sql.exp = paste0("SELECT name FROM implementation WHERE id = '", algo_id, "'")
-  result = dbGetQuery(con, sql.exp)$name
-  
-  if(length(result) == 0) {
-    warning("There is no algorithm in the database with this id (", algo_id ,").")
-    return(NULL)
-  }
-  
-  if(substr(result, start=1, stop = 4) == "mlr.") {
-    result = substring(result, first = 5)
-  }
-  
-  return(result)
-}
-
 
 #' Checks if the supplied parameter list is correct according to the data stored in parameter_ranges.
 #'
@@ -196,48 +152,12 @@ get_cached_task_metadata = memoise(get_task_metadata, ~timeout(cache.timeout))
 #' @param parameter_names A vector or list of 
 #'
 #' @return A dataframe containing: A column "setup", with the setup_id. A column "<parameter_name>" for every parameter. And one row of data for every setup, that has been run with one of the given algorithms, containing the parameter_data of that run.
-get_parameter_table = function(algo_ids, task_id, parameter_names) {
-  impl_ids_as_string = paste0(algo_ids, collapse = ", ")
-  
-  db_entries = lapply(parameter_names, function(parameter_name) {
-    sql.exp = paste0("SELECT DISTINCT input_setting.setup, input_setting.value AS `", parameter_name, "`
-                      FROM input
-                      JOIN input_setting ON input_setting.input_id = input.id
-                      JOIN run ON run.setup = input_setting.setup
-                      WHERE input.name = '", parameter_name,"'
-                      AND task_id = ", task_id, "
-                      AND input.implementation_id IN (", impl_ids_as_string ,");")
-    result = dbGetQuery(con, sql.exp)
-    for (i in seq_len(ncol(result))) {
-      if (is.character(result[[i]])) {
-        result[[i]] = type.convert(result[[i]])  
-      }
-    }
-    return(result)
-  })
-  
-  if(length(db_entries) == 0) {
-    return(NULL)
-  }
-
-  # Merge results by same setup_ids
-  # FIXME: replace for loop by better merge...
-  if(length(db_entries) >= 2) {
-    table = merge(db_entries[[1]], db_entries[[2]], all = TRUE, by = "setup")
-    
-    if(length(db_entries) >= 3) {
-      for (i in 3:length(db_entries)) {
-        table = merge(table, db_entries[[i]], all = TRUE, by = "setup")
-      }
-    }
-  } else {
-    table = db_entries[[1]]
-  }
-  
-  return(table)
+get_table = function(algo_id, task_id) {
+  sql.exp = sprintf("SELECT * FROM `%s` WHERE task_id = '%s'", algo_id, task_id)
+  r = dbGetQuery(con, sql.exp)
+  setDT(r)
+  r
 }
-
-get_cached_parameter_table = memoise(get_parameter_table, ~timeout(cache.timeout))
 
 
 #' This returns the inverse-transformation function specified for this parameter.
@@ -261,31 +181,28 @@ get_inverse_trafo = function(algo_name, param_name) {
 #' @param parameters A data frame of the form data.frame(parA = c(valA1, valA2), parB = c(valB1, valB2))
 #'
 #' @return A vector of setup ids of the nearest points to the given parameters in the database.
-get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
+get_nearest_setup = function(algo_id, task_id, parameters) {
   # Table now contains a big dataframe.
   # The rows are all setups run on the task with this algorithm.
   # The columns represent different parameters.
   # The column names represent the parameter name.
-  table = get_cached_parameter_table(algo_ids, task_id, names(parameters));
+  # There are also 5 columns for the 5 evaluation measures.
+  table = get_table(algo_id, task_id);
   
   if(is.null(table)) {
     return(list(error = "No suitable points found."))
   }
   
-  # Fill in defaults for NAs
-  table = replace_na_with_defaults(table, algo_name, names(parameters));
-  
   for(parameter_name in names(parameters)) {
-    
     # Transform data.independet params that are not defined like in the data base to data.dependent  
-    data.trafo = parameter_ranges[[algo_name]]$pars[[parameter_name]]$data.trafo
+    data.trafo = parameter_ranges[[algo_id]]$pars[[parameter_name]]$data.trafo
     if (!is.null(data.trafo)) {
       dict = get_cached_task_metadata(task_id)
       parameters[[parameter_name]] = data.trafo(dict = dict, par = parameters)
     }
     
     # Try to apply inverse transformation function, if one is set.
-    inverse.trafo = get_inverse_trafo(algo_name, parameter_name)
+    inverse.trafo = get_inverse_trafo(algo_id, parameter_name)
     
     if(!is.null(inverse.trafo)) {
       table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
@@ -305,93 +222,20 @@ get_nearest_setups = function(algo_ids, algo_name, task_id, parameters) {
     return(list(error = "No suitable points were found."))
   }
 
-  # Remove NAs
-  table = table[complete.cases(table), , drop = FALSE]
-
-  query = parameters[names(table)[-1]]
-
+  np = names(parameters)
+  
   # scale table and query to 01
-  mins = sapply(table[, -1, drop = FALSE], min)
-  maxs = sapply(table[, -1, drop = FALSE], max)
-  table.scaled = scale(table[, -1, drop = FALSE], center = mins, scale = maxs - mins)
-  table[, 2:ncol(table)] = table.scaled
-  query = as.data.frame(scale(query, center = mins, scale = maxs - mins))
+  mins = sapply(table[, ..np, drop = FALSE], min)
+  maxs = sapply(table[, ..np, drop = FALSE], max)
+  table.scaled = scale(table[, ..np, drop = FALSE], center = mins, scale = maxs - mins)
+  table[, np] = table.scaled
+  query = as.data.frame(scale(parameters, center = mins, scale = maxs - mins))
 
   # find nearest neighbour
-  
-  res = FNN::get.knnx(data = table[, -1, drop = FALSE], query = query, k = 1)
-  
+  res = FNN::get.knnx(data = table[, ..np, drop = FALSE], query = query, k = 1)
+
   distances = res$nn.dist[, 1, drop = TRUE]
-  setup = table[res$nn.index[, 1, drop = TRUE], , drop = FALSE]
+  setup = table[res$nn.index[, , drop = TRUE], , drop = FALSE]
 
-  return(data.frame(setup_ids = setup$setup, distances = distances))
-}
-
-
-#' Get data associated with runs of setup "setup_ids" on task "task_id"
-#'
-#' @param task_id The task these setups were run on.
-#' @param setup_ids The setup ids of interest.
-#'
-#' @return A list, with names equal to the setup ids.
-get_setup_data = function(task_id, setup_ids) {
-  sql.exp = paste0("SELECT setup, input.implementation_id, input.name, input_setting.value
-                    FROM input_setting JOIN input ON input.id = input_setting.input_id
-                    WHERE setup IN (",paste0(setup_ids,collapse=", "),")")
-  result = dbGetQuery(con, sql.exp)
-
-  return_value = lapply(setup_ids, function(setup_id) {
-    rows = result[result$setup == setup_id, -1, drop = FALSE]
-    impl_id = rows[[1]][1]
-    algo_name = get_algo_name_for_algo_id(impl_id)
-    params = as.list(rows$value)
-    names(params) = rows$name
-
-    # Remove openml. parameters
-    params = params[substr(names(params), start = 1, stop = 7) != "openml."]
-    
-    # Find out which parameters are not present in the database
-    needs_default_names = parameter_ranges[[algo_name]]$pars
-    needs_default_names[names(params)] = NULL
-    needs_default_names = names(needs_default_names)
-
-    # Get default values for these parameters
-    default_values = lapply(needs_default_names, function(param_name) {
-      get_parameter_default(algo_name, param_name)
-    })
-    names(default_values) = needs_default_names 
-    
-    # Add defaults
-    params = append(params, default_values)
-    
-    for (i in seq_along(params)) {
-      if (is.character(params[[i]])) params[[i]] = type.convert(params[[i]])  
-    }
-    
-    # Now, we request performance data on the nearest point given by the database.
-    sql.exp = paste0("SELECT evaluation.source, function_id, value FROM evaluation JOIN run ON run.rid = evaluation.source WHERE task_id = ", task_id, " AND setup = ", setup_id, " AND function_id IN (4,45,54,59,63) ORDER BY function_id")
-    result = dbGetQuery(con, sql.exp)
-    
-    n_func_ids = dim(result)[1];
-    
-    if(n_func_ids < 4) {
-      stop("Less than 4 function ids!")
-    }
-    
-    if(n_func_ids == 4) {
-      function_names = c("auc","accuracy","rmse","runtime")
-    } else {
-      function_names = c("auc","accuracy","rmse","scimark","runtime")
-    }
-     
-    rid = result$source[1]
-    performance_data = as.list(result$value)
-    names(performance_data) = function_names
-
-    return(c(list(impl_id = impl_id, run_id = rid, performance = performance_data), params))
-  })
-
-  return_value = do.call(rbind, return_value)
-  
-  return(return_value)
+  return(data.frame(setup, distance = distances))
 }
