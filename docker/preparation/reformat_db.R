@@ -157,40 +157,6 @@ writeRows = function(algo_id, xt) {
   dbWriteTable(con, algo_id, xt, append = T, row.names = F)
 }
 
-# writeRows = function(algo_id, xt) {
-#   colnames = paste0(sprintf("`%s`", names(xt)), collapse = ", ")
-#   
-#   CHUNK_SIZE = 200
-# 
-#   for(i in 1:(nrow(xt)/CHUNK_SIZE)) {
-#     upper_bound = (i * CHUNK_SIZE)
-#     if(upper_bound > nrow(xt)) {
-#       upper_bound = nrow(xt)
-#     }
-#     
-#     t = xt[((i-1) * CHUNK_SIZE) : upper_bound, ]
-#     
-#     t_as_str = apply(t, 1, function(x) {
-#       strs = sapply(x, function(y) {
-#         y = trimws(y)
-#         if(is.na(y)) {
-#           "NULL"
-#         } else {
-#           if(y == 'TRUE' || y == 'FALSE') {
-#             sprintf("'%s'", ifelse(y == 'TRUE', 1, 0))
-#           } else {
-#             sprintf("'%s'", y)        
-#           }
-#         }
-#       })
-#       sprintf("(%s)", paste0(strs, collapse=", "))
-#     })
-#     t_as_str = paste0(t_as_str, collapse = ", ")
-#     sql.exp = sprintf("INSERT INTO %s.`%s` (%s) VALUES %s", mysql_dbname_to, algo_id, colnames, t_as_str)
-#     dbExecute(con, sql.exp)
-#   }
-# }
-
 updateDatabase = function(task_id, algo_id) {
   t = getTableFromDB(task_id, algo_id)
   setDT(t)
