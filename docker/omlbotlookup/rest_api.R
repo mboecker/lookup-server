@@ -49,11 +49,8 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
     return(json_error(sprintf("algo = %s: %s", algo, err_msg)))
   }
   
-  algo_ids = get_algo_ids_for_algo_name(algo)
-  algo_name = algo
-  
-  if(length(algo_ids) == 0) {
-    return(json_error("No such algorithm was found in the database."))
+  if(length(algo) == 0) {
+    return(json_error("No algo given."))
   }
   
   # Check needed parameters
@@ -65,7 +62,7 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
       parameter_ranges[[algo]],
       ints.as.num = TRUE)  
   }
-  parameter_status = sapply(parameter_list, function(x) is_parameter_list_ok(algo_name, x))
+  parameter_status = sapply(parameter_list, function(x) is_parameter_list_ok(algo, x))
   parameter_status_ok = sapply(parameter_status, isTRUE)
   if (!all(parameter_status_ok)) {
     error_messages = paste0("#", which(!parameter_status_ok), ": ", parameter_status[!parameter_status_ok], collapse = ", ")
@@ -73,7 +70,7 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
   
   # Lookup performance in database
-  result = get_nearest_setups(algo_ids, algo_name, task, parameters)
+  result = get_nearest_setup(algo, task, parameters)
   
   if(is.null(result)) {
     return(json_error("An error occured."))
@@ -82,8 +79,7 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   if(!is.null(result$error)) {
     return(json_error(paste(result$error, collapse = ", ")))
   } else {
-    performance = get_setup_data(task, result$setup_ids)
-    return(cbind(result, performance))
+    return(result)
   }
 }
 

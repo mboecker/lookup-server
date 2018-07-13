@@ -73,29 +73,6 @@ get_algos = function() {
 }
 
 
-#' In the database, each new version of a classification algorithm has a different algo_id.
-#' This function returns every algo_id fitting to a given algo_name.
-#'
-#' @param algo_name The database is searched for this algorithm name.
-#'
-#' @return A vector containing every algo_id that fits to algo_name.
-get_algo_ids_for_algo_name = function(algo_name) {
-  # Escape algorithm name.
-  algo_name = dbEscapeStrings(con, as.character(algo_name))
-  
-  # Request every fitting algo_id.
-  sql.exp = paste0("SELECT id FROM implementation WHERE name = 'mlr.", algo_name, "'")
-  result = dbGetQuery(con, sql.exp)$id
-  
-  # If there is no result, return an empty vector.
-  if(length(result) == 0) {
-    warning("There is no algorithm in the database with this name ('", algo_name, "').")
-    return(c())
-  }
-  
-  return(as.numeric(result))
-}
-
 #' Checks if the supplied parameter list is correct according to the data stored in parameter_ranges.
 #'
 #' @param algo_name The algorithm name these parameters belong to
@@ -222,14 +199,15 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
     return(list(error = "No suitable points were found."))
   }
 
-  np = names(parameters)
+  np = intersect(names(table), names(parameters))
   
   # scale table and query to 01
   mins = sapply(table[, ..np, drop = FALSE], min)
   maxs = sapply(table[, ..np, drop = FALSE], max)
   table.scaled = scale(table[, ..np, drop = FALSE], center = mins, scale = maxs - mins)
   table[, np] = table.scaled
-  query = as.data.frame(scale(parameters, center = mins, scale = maxs - mins))
+  
+  query = as.data.frame(scale(parameters[np], center = mins, scale = maxs - mins))
 
   # find nearest neighbour
   res = FNN::get.knnx(data = table[, ..np, drop = FALSE], query = query, k = 1)
