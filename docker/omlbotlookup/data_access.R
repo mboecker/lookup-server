@@ -205,7 +205,10 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   mins = sapply(table[, ..np, drop = FALSE], min)
   maxs = sapply(table[, ..np, drop = FALSE], max)
   table.scaled = scale(table[, ..np, drop = FALSE], center = mins, scale = maxs - mins)
-  table[, np] = table.scaled
+  
+  for(par in np) {
+    table[, par] = table.scaled[, par]
+  }
   
   query = as.data.frame(scale(parameters[np], center = mins, scale = maxs - mins))
 
