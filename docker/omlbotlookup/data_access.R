@@ -133,6 +133,11 @@ get_table = function(algo_id, task_id) {
   sql.exp = sprintf("SELECT * FROM `%s` WHERE task_id = '%s'", algo_id, task_id)
   r = dbGetQuery(con, sql.exp)
   setDT(r)
+  for(rowname in names(r)) {
+    if(length(levels(as.factor(simplify2array(r[,..rowname])))) == 2) {
+      r[,rowname] = as.logical(simplify2array(r[,..rowname]))
+    }
+  }
   r
 }
 
