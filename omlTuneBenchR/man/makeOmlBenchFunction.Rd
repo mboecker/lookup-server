@@ -4,7 +4,8 @@
 \alias{makeOmlBenchFunction}
 \title{Creates a function that will wrap the API}
 \usage{
-makeOmlBenchFunction(learner.name, task.id)
+makeOmlBenchFunction(learner.name, task.id, api.chunksize = 20,
+  include.extras = FALSE)
 }
 \arguments{
 \item{learner.name}{(\code{character(1)})

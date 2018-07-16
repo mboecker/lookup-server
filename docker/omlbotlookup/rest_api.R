@@ -82,6 +82,73 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
 }
 
+#' Return the complete results for a given task and algo
+#' @serializer unboxedJSON
+#' @param task the task id
+#' @param algo the algorithm name (e.g. classif.knn) (without leading mlr. as in the DB)
+#' @param parameters named list of parameter settings. Will be converted to a data.frame. Each row represents one parameter setting.
+#' @get /results
+#' @post /results
+rest_return_y = function(task = NULL, algo = NULL, parameters = NULL) {
+  task = as.numeric(task)
+  
+  if(is.null(parameters)) {
+    return(json_error("Please supply 'parameters'."))
+  }
+  
+  parameters = tryCatch(jsonlite::fromJSON(parameters), error = function(e) e)
+  if (inherits(parameters, c("try-error", "error"))) {
+    return(json_error(sprintf("Error in converting parameters from JSON: %s", as.character(parameters))))
+  } else if (!isTRUE({err_msg = checkList(parameters, names = "named")})) {
+    return(json_error(sprintf("parameters = %s: %s",parameters, err_msg)))
+  }
+  
+  parameters = lapply(parameters, function(x) if (is.character(x)) type.convert(x) else x)
+  parameters = as.data.frame(parameters)
+  
+  if (!isTRUE({err_msg = checkInt(task)})) {
+    return(json_error(sprintf("task = %s: %s",task, err_msg)))
+  }
+  
+  if (!isTRUE({err_msg = checkString(algo)})) {
+    return(json_error(sprintf("algo = %s: %s", algo, err_msg)))
+  }
+  
+  algo_id = paste0("mlr.", algo)
+
+  table = get_cached_parameter_table
+  
+  # Check needed parameters
+  if (ncol(parameters) == 1) { #FIXME: Workaround for PH bug!
+    parameter_list = lapply(parameters[, 1, drop = TRUE], function(x) setNames(list(x), names(parameters)))
+  } else {
+    parameter_list = dfRowsToList(
+      parameters[, getParamIds(parameter_ranges[[algo_id]]), drop = FALSE], 
+      parameter_ranges[[algo_id]],
+      ints.as.num = TRUE)  
+  }
+  parameter_status = sapply(parameter_list, function(x) is_parameter_list_ok(algo_id, x))
+  parameter_status_ok = sapply(parameter_status, isTRUE)
+  if (!all(parameter_status_ok)) {
+    error_messages = paste0("#", which(!parameter_status_ok), ": ", parameter_status[!parameter_status_ok], collapse = ", ")
+    return(json_error(paste0("Errors for parameter values: ", error_messages)))
+  }
+  
+  # Lookup performance in database
+  result = get_nearest_setups(algo_id, task, parameters)
+  
+  if(is.null(result)) {
+    return(json_error("An error occured."))
+  }
+  
+  if(!is.null(result$error)) {
+    return(json_error(paste(result$error, collapse = ", ")))
+  } else {
+    performance = get_setup_data(task, result$setup_ids, algo_id)
+    return(cbind(result, performance))
+  }
+}
+
 # List all possible parameters for given algorithm
 #' @serializer unboxedJSON
 #' @get /params
