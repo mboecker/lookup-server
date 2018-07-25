@@ -7,9 +7,10 @@
 #' @return `function`
 #' @export
 
-makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, include.extras = FALSE) {
+makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, include.extras = FALSE, objective = "accuracy") {
   assertString(learner.name)
   assertInt(task.id)
+  assertSubset(objective, c("auc", "accuracy", "rmse"))
   
   obj.fun = function(x) {
     # we split x into chunks smaller then 20 so that the api can handle it.
@@ -27,16 +28,14 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
       }
     })
     res = unlist(chunked.res, recursive = FALSE) # unlist, so we have a list with each item corresponding to one x value
-    y = sapply(res, function(x) x$performance$accuracy, simplify = TRUE) # y will be the accuracy as a numeric vector
+    y = sapply(res, function(x) x[[objective]], simplify = TRUE) # y will be the eg. accuracy as a numeric vector
     # add extras as a non-nested list. each i-th item corresponds to the i-th entry in the y vecotr
     if (include.extras) {
       extras = lapply(res, function(x) {
-        perfs = x$performance
-        perfs$accuracy = NULL
-        x$performance = NULL
-        c(x, perfs)
+        x[[objective]] = NULL
+        x
       })
-      if (length(y) == 1) extras = unlist(extras, recursive = FALSE)
+      if (length(y) == 1) extras = extras[[1]]
       attr(y, "extras") = extras
     }
     

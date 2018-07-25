@@ -5,7 +5,7 @@ startOmlTuneServer()
 learner.name = "classif.kknn"
 task.id = 3
 
-of = makeOmlBenchFunction(learner.name, task.id)
+of = makeOmlBenchFunction(learner.name, task.id, include.extras = TRUE)
 par.set = getParamSet(of)
 x = sampleValue(par.set)
 res = of(x)
