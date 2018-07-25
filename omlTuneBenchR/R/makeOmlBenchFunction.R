@@ -51,6 +51,6 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
     vectorized = FALSE,
     par.set = par.set,
     noisy = FALSE,
-    minimize = FALSE #We get accuracy back right?
+    minimize = objective %in% c("rmse") #We get accuracy back right?
   )
 }
