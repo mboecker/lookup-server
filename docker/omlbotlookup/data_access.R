@@ -169,7 +169,7 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   # The columns represent different parameters.
   # The column names represent the parameter name.
   # There are also 5 columns for the 5 evaluation measures.
-  table = get_table(algo_id, task_id);
+  table = get_table(algo_id, task_id)
   
   if(is.null(table)) {
     return(list(error = "No suitable points found."))
