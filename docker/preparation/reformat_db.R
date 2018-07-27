@@ -7,8 +7,8 @@ source("paramToJSONList.R")
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
-mysql_dbname_from = "openml"
-mysql_dbname_to = "openml_exporting"
+mysql_dbname_from = "openml_native_full"
+mysql_dbname_to = "openml_exporting_full"
 mysql_host = "127.0.0.1"
 
 # Open database connection
@@ -34,6 +34,7 @@ getTableFromDB = function(task_id, algo_id) {
                      WHERE input.name = '", parameter_name,"'
                      AND task_id = ", task_id, "
                      AND implementation.name = 'mlr.", algo_id, "'")
+
     result = dbGetQuery(con, sql.exp)
     for (i in seq_len(ncol(result))) {
       if (is.character(result[[i]])) {
@@ -42,6 +43,8 @@ getTableFromDB = function(task_id, algo_id) {
     }
     return(result)
   })
+  
+  #cat(" (db done) ")
   
   if(length(db_entries) == 0) {
     return(NULL)
@@ -55,16 +58,21 @@ getTableFromDB = function(task_id, algo_id) {
   
   setDT(t)
   
+  #cat(" (add eval) ")
+  
   # Add evaluation measures from `evaluation`-table.
   if(nrow(t) > 0) {
     function_ids = c(4,45,54,59,63)
     method_names = c("auc","accuracy","rmse","scimark","runtime")
     
-    run_ids = sprintf("(%s)", paste0(simplify2array(t[,"rid"]), collapse=", "))
-    
-    measures = sprintf("SELECT `source` AS `rid`, `function_id`, `value` FROM %s.`evaluation` WHERE `source` IN %s AND `function_id` IN (4,45,54,59,63)", mysql_dbname_from, run_ids)
+    measures = sprintf("SELECT `source` AS `rid`, `function_id`, `value` FROM %s.`evaluation` JOIN %s.`run` ON source = rid WHERE `task_id` = '%i' AND `function_id` IN (4,45,54,59,63)", mysql_dbname_from, mysql_dbname_from, task_id)
     result = dbGetQuery(con, measures)
+    
+    # Remove runs which are not currently selected (sql query above selected too many.)
+    result = result[result$rid %in% t$rid,]
   
+    #cat(" (db done) ")
+    
     # Merge evaluation measures one-by-one into the table.
     for (i in seq_along(function_ids)) {
       function_id = function_ids[i]
@@ -162,7 +170,7 @@ updateDatabase = function(task_id, algo_id) {
   setDT(t)
   
   t = replace_na_with_defaults(t, algo_id, names(t))
-  
+
   if("gamma" %in% names(t)) {
     cc = complete.cases(t[,-"gamma"])
   } else {
@@ -182,7 +190,8 @@ updateDatabase = function(task_id, algo_id) {
 }
 
 possibleTaskIDs = function() {
-  return(c(3,4))
+  sql.exp = paste0("SELECT DISTINCT task_id FROM ",mysql_dbname_from,".run")
+  return(c(dbGetQuery(con, sql.exp))$task_id)
 }
 
 possibleAlgoIDs = function() {
