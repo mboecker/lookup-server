@@ -8,7 +8,7 @@ task.id = 3
 of = makeOmlBenchFunction(learner.name, task.id, include.extras = TRUE)
 par.set = getParamSet(of)
 set.seed(1)
-x2 = generateRandomDesign(par.set, 2)
+x2 = generateRandomDesign(2, par.set)
 x = sampleValues(par.set, 2)
 res = of(x)
 res
@@ -32,3 +32,15 @@ g = ggplot(des, aes(x = alpha, y = lambda, fill = distance))
 g + geom_tile()
 
 stopOmlTuneServer()
+
+
+
+learner.name = "classif.svm"
+task.id = 3
+
+of = makeOmlBenchFunction(learner.name, task.id, include.extras = TRUE, api.chunksize = 200)
+par.set = getParamSet(of)
+set.seed(1)
+x2 = generateRandomDesign(3, par.set)
+dput(x2)
+res = of(x2)

@@ -11,10 +11,21 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
   assertString(learner.name)
   assertInt(task.id)
   assertSubset(objective, c("auc", "accuracy", "rmse"))
+
+  par.set = getParamSetForOmlLearner(learner.name)
   
   obj.fun = function(x) {
+    # x can be a list with each list item representing value(s) for each parameter
+    # or a data.frame directly resulting from as.data.frame(x)
+    if (is.list(x))
+      assertList(x, names = "named", types = c("numeric", "integer", "logic", "character"))
+      x = as.data.frame(x)
+    else {
+      assertDataFrame(x)
+    }
+    assertSetEqual(names(x), getParamIds(par.set, repeated = TRUE, with.nr=TRUE))
+
     # we split x into chunks smaller then 20 so that the api can handle it.
-    x = as.data.frame(x)
     x = split(x, ceiling(seq_len(nrow(x))/api.chunksize))
     # we will get a nested list, each list item are the result of one chunk
     chunked.res = lapply(x, function(xs) {
@@ -38,11 +49,11 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
       if (length(y) == 1) extras = extras[[1]]
       attr(y, "extras") = extras
     }
+
+    names(y) = NULL
     
     return(y)
   }
-  
-  par.set = getParamSetForOmlLearner(learner.name)
   
   makeSingleObjectiveFunction(
     name = paste0("Task_", task.id, "_Learner_", learner.name),
