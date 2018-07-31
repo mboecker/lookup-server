@@ -14,13 +14,9 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
 
   par.set = getParamSetForOmlLearner(learner.name)
   
-  obj.fun = function(x) {
-    
-  }
-  
   makeSingleObjectiveFunction(
     name = paste0("Task_", task.id, "_Learner_", learner.name),
-    fn = obj.fun,
+    fn = function(x) readApiResult(x, learner.name, task.id, include.extras, api.chunksize, objective),
     has.simple.signature = FALSE,
     vectorized = FALSE,
     par.set = par.set,
@@ -29,11 +25,11 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
   )
 }
 
-readApiResult = function(x) {
+readApiResult = function(x, learner.name, task.id, include.extras, api.chunksize, objective) {
   # x can be a list with each list item representing value(s) for each parameter
   # or a data.frame directly resulting from as.data.frame(x)
   if (is.list(x) && !is.data.frame(x)) {
-    assertList(x, names = "named", types = c("numeric", "integer", "logic", "character"))
+    assertList(x, names = "named", types = c("numeric", "integer", "logical", "character"))
     x = as.data.frame(x)
   } else {
     assertDataFrame(x)
@@ -53,19 +49,17 @@ readApiResult = function(x) {
       return(res)
     }
   })
-  res = unlist(chunked.res, recursive = FALSE) # unlist, so we have a list with each item corresponding to one x value
+  res = unlist(chunked.res, recursive = FALSE, use.names = FALSE) # unlist, so we have a list with each item corresponding to one x value
   y = sapply(res, function(x) x[[objective]], simplify = TRUE) # y will be the eg. accuracy as a numeric vector
   # add extras as a non-nested list. each i-th item corresponds to the i-th entry in the y vecotr
   if (include.extras) {
     extras = lapply(res, function(x) {
       x[[objective]] = NULL
-      x
+      setNames(x, paste0(".lookup.", names(x)))
     })
     if (length(y) == 1) extras = extras[[1]]
     attr(y, "extras") = extras
   }
-
-  names(y) = NULL
   
   return(y)
 }
