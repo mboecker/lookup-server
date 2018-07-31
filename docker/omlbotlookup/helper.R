@@ -16,9 +16,13 @@ get_nearest_neighbour = function(table_trafo_scaled, parameters_trafo_scaled, nu
   parameters_trafo_scaled$api_req_index = seq_len(nrow(parameters_trafo_scaled))
 
   # has to return list with vectors!
-  get_nearest_neighbour_subset = function(parameters_subset, parameters_subset_selection) {
-    table_subset = merge(table_trafo_scaled, parameters_subset_selection, all.x = FALSE)
-    
+  get_nearest_neighbour_subset = function(parameters_subset, parameters_subset_selection = NULL) {
+    if (!is.null(parameters_subset_selection)) {
+      table_subset = merge(table_trafo_scaled, parameters_subset_selection, all.x = FALSE)
+    } else {
+      table_subset = copy(table_trafo_scaled)
+    }
+
     # after subsetting some columns only contain na values
     cols_no_na = names(which(sapply(parameters_subset, function(x) !all(is.na(x)))))
     numeric_params_no_na = intersect(numeric_params, cols_no_na)
@@ -33,8 +37,12 @@ get_nearest_neighbour = function(table_trafo_scaled, parameters_trafo_scaled, nu
   }
 
   # call get_nearest_neighbour_subset for the table subset with only the numeric params for each combination of non numeric params
-  nnres = parameters_trafo_scaled[, c(list(api_req_index = api_req_index), get_nearest_neighbour_subset(.SD, mget(non_numeric_params))), by = non_numeric_params]
-  setkeyv(nnres, "api_req_index")
+  if (length(non_numeric_params)>0) {
+    nnres = parameters_trafo_scaled[, c(list(api_req_index = api_req_index), get_nearest_neighbour_subset(.SD, mget(non_numeric_params))), by = non_numeric_params]
+    nnres = nnres[,!"api_req_index"] 
+  } else {
+    nnres = as.data.table(get_nearest_neighbour_subset(parameters_trafo_scaled))
+  }
   return(nnres)
 }
 

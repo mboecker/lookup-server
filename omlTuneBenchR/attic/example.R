@@ -2,18 +2,17 @@ library(devtools)
 load_all()
 startOmlTuneServer()
 
-learner.name = "classif.ranger"
+learner.name = "classif.kknn"
 task.id = 3
 
 of = makeOmlBenchFunction(learner.name, task.id, include.extras = TRUE)
 par.set = getParamSet(of)
 set.seed(1)
 x2 = generateRandomDesign(2, par.set)
-x = sampleValues(par.set, 2)
-res = of(x)
+res = of(x2)
 res
 des = generateGridDesign(par.set, 20)
-res = of(as.list(des))
+res = of(des)
 des$y = as.numeric(res)
 plot(des$k, des$y, type = "b")
 

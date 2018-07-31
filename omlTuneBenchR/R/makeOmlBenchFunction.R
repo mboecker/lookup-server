@@ -15,44 +15,7 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
   par.set = getParamSetForOmlLearner(learner.name)
   
   obj.fun = function(x) {
-    # x can be a list with each list item representing value(s) for each parameter
-    # or a data.frame directly resulting from as.data.frame(x)
-    if (is.list(x))
-      assertList(x, names = "named", types = c("numeric", "integer", "logic", "character"))
-      x = as.data.frame(x)
-    else {
-      assertDataFrame(x)
-    }
-    assertSetEqual(names(x), getParamIds(par.set, repeated = TRUE, with.nr=TRUE))
-
-    # we split x into chunks smaller then 20 so that the api can handle it.
-    x = split(x, ceiling(seq_len(nrow(x))/api.chunksize))
-    # we will get a nested list, each list item are the result of one chunk
-    chunked.res = lapply(x, function(xs) {
-      query = list(task = task.id, algo = learner.name, parameters = jsonlite::toJSON(as.list(xs)))
-      httr.res = httr::POST(omlTuneBenchR$connection, query = query, httr::accept_json())
-      res = httr::content(httr.res)
-      if (!is.null(res$error)) {
-        stop(res$error)
-      } else {
-        return(res)
-      }
-    })
-    res = unlist(chunked.res, recursive = FALSE) # unlist, so we have a list with each item corresponding to one x value
-    y = sapply(res, function(x) x[[objective]], simplify = TRUE) # y will be the eg. accuracy as a numeric vector
-    # add extras as a non-nested list. each i-th item corresponds to the i-th entry in the y vecotr
-    if (include.extras) {
-      extras = lapply(res, function(x) {
-        x[[objective]] = NULL
-        x
-      })
-      if (length(y) == 1) extras = extras[[1]]
-      attr(y, "extras") = extras
-    }
-
-    names(y) = NULL
     
-    return(y)
   }
   
   makeSingleObjectiveFunction(
@@ -64,4 +27,45 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
     noisy = FALSE,
     minimize = objective %in% c("rmse") #We get accuracy back right?
   )
+}
+
+readApiResult = function(x) {
+  # x can be a list with each list item representing value(s) for each parameter
+  # or a data.frame directly resulting from as.data.frame(x)
+  if (is.list(x) && !is.data.frame(x)) {
+    assertList(x, names = "named", types = c("numeric", "integer", "logic", "character"))
+    x = as.data.frame(x)
+  } else {
+    assertDataFrame(x)
+  }
+  assertSetEqual(names(x), getParamIds(par.set, repeated = TRUE, with.nr=TRUE))
+
+  # we split x into chunks smaller then 20 so that the api can handle it.
+  x = split(x, ceiling(seq_len(nrow(x))/api.chunksize))
+  # we will get a nested list, each list item are the result of one chunk
+  chunked.res = lapply(x, function(xs) {
+    query = list(task = task.id, algo = learner.name, parameters = jsonlite::toJSON(as.list(xs)))
+    httr.res = httr::POST(omlTuneBenchR$connection, query = query, httr::accept_json())
+    res = httr::content(httr.res)
+    if (!is.null(res$error)) {
+      stop(res$error)
+    } else {
+      return(res)
+    }
+  })
+  res = unlist(chunked.res, recursive = FALSE) # unlist, so we have a list with each item corresponding to one x value
+  y = sapply(res, function(x) x[[objective]], simplify = TRUE) # y will be the eg. accuracy as a numeric vector
+  # add extras as a non-nested list. each i-th item corresponds to the i-th entry in the y vecotr
+  if (include.extras) {
+    extras = lapply(res, function(x) {
+      x[[objective]] = NULL
+      x
+    })
+    if (length(y) == 1) extras = extras[[1]]
+    attr(y, "extras") = extras
+  }
+
+  names(y) = NULL
+  
+  return(y)
 }
