@@ -160,7 +160,7 @@ get_inverse_trafo = function(algo_name, param_name) {
 #'
 #' @param algo_ids A vector of algorithm ids, which will all be treated equally. It is required, that these all have the same name (and parameters).
 #' @param task_id A task id, given in numeric form.
-#' @param parameters A data frame of the form data.frame(parA = c(valA1, valA2), parB = c(valB1, valB2))
+#' @param parameters A data table of the form data.table(parA = c(valA1, valA2), parB = c(valB1, valB2))
 #'
 #' @return A vector of setup ids of the nearest points to the given parameters in the database.
 get_nearest_setup = function(algo_id, task_id, parameters) {
@@ -175,7 +175,8 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
     return(list(error = "No suitable points found."))
   }
   
-  parameters_trafo = parameters
+  parameters_trafo = copy(parameters) # will contain parameters trasnformed according to taks
+
   for(parameter_name in names(parameters_trafo)) {
     # Transform data.independet params that are not defined like in the data base to data.dependent  
     data.trafo = parameter_ranges[[algo_id]]$pars[[parameter_name]]$data.trafo
@@ -190,38 +191,27 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
     if(!is.null(inverse.trafo)) {
       table[[parameter_name]] = inverse.trafo(as.numeric(table[[parameter_name]]))
     }
-    
-    # if(!is.numeric(parameters_trafo[[parameter_name]])) {
-    #   # We subset the table to remove the factorial parameters, which are not equal to the request.
-    #   table = table[table[[parameter_name]] == parameters[[parameter_name]],]
-      
-    #   # As the "distance" to this parameter has been "evaluated", we can remove it from the table, because we can't sort by it.
-    #   table[[parameter_name]] = NULL
-    # }
-  }
-
-  # No suitable points were found.
-  if(dim(table)[1] == 0) {
-    return(list(error = "No suitable points were found."))
   }
   
   numeric_params = names(parameters_trafo)[sapply(parameters_trafo, is.numeric)]
 
   # scale table and query to 01
-  mins = sapply(table[, ..numeric_params, drop = FALSE], min)
-  maxs = sapply(table[, ..numeric_params, drop = FALSE], max)
-  table_scaled = scale(table[, ..numeric_params, drop = FALSE], center = mins, scale = maxs - mins)
-  table[, (numeric_params) := as.data.table(table_scaled)]
+  # mins = sapply(table[, ..numeric_params, drop = FALSE], min, na.rm = TRUE)
+  # maxs = sapply(table[, ..numeric_params, drop = FALSE], max, na.rm = TRUE)
+  mins = getLower(parameter_ranges[[algo_id]])
+  maxs = getUpper(parameter_ranges[[algo_id]])
+  table_trafo_scaled = copy(table)
+  tmp = scale(table_trafo_scaled[, ..numeric_params, drop = FALSE], center = mins, scale = maxs - mins)
+  table_trafo_scaled[, (numeric_params) := as.data.table(tmp)]
   
-  parameters_trafo_scaled = parameters_trafo
-  parameters_trafo_scaled[, numeric_params] = as.data.frame(scale(parameters_trafo[, numeric_params, drop = FALSE], center = mins, scale = maxs - mins))
+  parameters_trafo_scaled = copy(parameters_trafo)
+  tmp = scale(as.data.frame(parameters_trafo[, ..numeric_params]), center = mins, scale = maxs - mins)
+  parameters_trafo_scaled[, (numeric_params) := as.data.table(tmp)]
   
   # find nearest neighbours
-  res = get_nearest_neighbour(table_scaled, parameters_trafo_scaled, numeric_params)
+  res = get_nearest_neighbour(table_trafo_scaled, parameters_trafo_scaled, numeric_params)
 
-  distances = res$nn.dist[, 1, drop = TRUE]
-  
-  setup = table[res$nn.index, , drop = FALSE]
+  res = merge(res[, c("task_id", "rid", "setup"), with = FALSE], table, all.x = TRUE, all.y = FALSE, sort = FALSE)
 
-  return(data.frame(setup, distance = distances))
+  return(res[,!"api_req_index"])
 }

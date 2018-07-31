@@ -39,7 +39,7 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
   
   parameters = lapply(parameters, function(x) if (is.character(x)) type.convert(x) else x)
-  parameters = as.data.frame(parameters)
+  parameters = as.data.table(parameters)
   
   if (!isTRUE({err_msg = checkInt(task)})) {
     return(json_error(sprintf("task = %s: %s",task, err_msg)))
@@ -55,10 +55,10 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   
   # Check needed parameters
   if (ncol(parameters) == 1) { #FIXME: Workaround for PH bug!
-    parameter_list = lapply(parameters[, 1, drop = TRUE], function(x) setNames(list(x), names(parameters)))
+    parameter_list = lapply(parameters[[1]], function(x) setNames(list(x), names(parameters)))
   } else {
     parameter_list = dfRowsToList(
-      parameters[, getParamIds(parameter_ranges[[algo]]), drop = FALSE], 
+      as.data.frame(parameters[, getParamIds(parameter_ranges[[algo]]), with = FALSE]), 
       parameter_ranges[[algo]],
       ints.as.num = TRUE)  
   }
