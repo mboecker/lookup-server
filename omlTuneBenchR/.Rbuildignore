@@ -1,4 +1,4 @@
-^.*\.Rproj$
+cd d^.*\.Rproj$
 ^\.Rproj\.user$
 todo-files
 .gitignore
@@ -13,3 +13,4 @@ appveyor.yml
 ^.+_cache$
 ^.+_files$
 ^vignettes/.+\.html$
+^inst/docker/mysqldata/.*$

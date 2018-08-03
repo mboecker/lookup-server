@@ -13,6 +13,15 @@ Defines the learner.}
 
 \item{task.id}{(\code{integer(1)})
 Defines the task id the learner is optimized on.}
+
+\item{api.chunksize}{(\code{numeric(1)})
+If too many points are requested with one function call this can help to split the request into smaller chunks.}
+
+\item{include.extras}{(\code{logical(1)})
+Should the extras be attached as an attribute?}
+
+\item{objective}{(\code{character(1)})
+Which value should be optimized? Possible choices are \dQuote{auc}, \dQuote{accuracy} (default) and \dQuote{rmse}.}
 }
 \value{
 \code{function}

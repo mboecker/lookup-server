@@ -4,6 +4,7 @@ sudo: required
 cache: packages
 services:
 - docker
+warnings_are_errors: false
 r:
 - devel
 r_packages:

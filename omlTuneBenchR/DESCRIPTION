@@ -1,6 +1,6 @@
 Package: omlTuneBenchR
 Type: Package
-Title: omlTuneBenchR wraps the omlTuneBench API in a smoof function
+Title: Wrapper for the omlTuneBench API.
 Version: 0.1.0
 Authors@R: c(
     person("Richter", "Jakob", NULL, "jakob1richter@gmail.com", role = c("cre", "aut"))

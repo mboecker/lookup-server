@@ -4,6 +4,12 @@
 #'   Defines the learner.
 #' @param task.id (`integer(1)`)
 #'   Defines the task id the learner is optimized on.
+#' @param api.chunksize (`numeric(1)`)
+#'   If too many points are requested with one function call this can help to split the request into smaller chunks.
+#' @param include.extras (`logical(1)`)
+#'   Should the extras be attached as an attribute?
+#' @param objective (`character(1)`)
+#'   Which value should be optimized? Possible choices are \dQuote{auc}, \dQuote{accuracy} (default) and \dQuote{rmse}.
 #' @return `function`
 #' @export
 

@@ -3,6 +3,7 @@
 #' @import checkmate
 #' @import httr
 #' @import jsonlite
+#' @importFrom stats setNames
 
 omlTuneBenchR = new.env(parent = emptyenv())
 omlTuneBenchR$debug = FALSE
