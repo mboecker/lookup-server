@@ -16,7 +16,7 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
   
   makeSingleObjectiveFunction(
     name = paste0("Task_", task.id, "_Learner_", learner.name),
-    fn = function(x) readApiResult(x, learner.name, task.id, include.extras, api.chunksize, objective),
+    fn = function(x) readApiResult(x, learner.name, task.id, include.extras, api.chunksize, objective, par.set),
     has.simple.signature = FALSE,
     vectorized = FALSE,
     par.set = par.set,
@@ -25,7 +25,7 @@ makeOmlBenchFunction = function(learner.name, task.id, api.chunksize = 20, inclu
   )
 }
 
-readApiResult = function(x, learner.name, task.id, include.extras, api.chunksize, objective) {
+readApiResult = function(x, learner.name, task.id, include.extras, api.chunksize, objective, par.set) {
   # x can be a list with each list item representing value(s) for each parameter
   # or a data.frame directly resulting from as.data.frame(x)
   if (is.list(x) && !is.data.frame(x)) {

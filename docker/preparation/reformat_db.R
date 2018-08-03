@@ -2,8 +2,6 @@ library("RMySQL")
 library("data.table")
 library("ParamHelpers")
 
-source("paramToJSONList.R")
-
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
