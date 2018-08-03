@@ -7,10 +7,6 @@ task.id = 3
 learner.name = "classif.ranger"
 of = makeOmlBenchFunction(learner.name, task.id, include.extras = TRUE)
 par.set = getParamSet(of)
-x = sampleValue(par.set)
-system.time({res = of(x)})
-#do.call(rbind, attr(res, "extras"))
-do.call(cbind, x)
 des = generateRandomDesign(n = 6L*4L, par.set = par.set)
 res = of(des)
 des$y = res
@@ -24,6 +20,10 @@ mbo.res
 opdf = as.data.frame(mbo.res$opt.path)
 opdf[mbo.res$best.ind,]
 
+task = mlrMBO:::makeTasks(mbo.res$final.opt.state)[[1]]
+model = mlrMBO:::getOptStateModels(mbo.res$final.opt.state)$models[[1]]
+pd = mlr::generatePartialDependenceData(model, task, c("sample.fraction", "replace"))
+mlr::plotPartialDependence(pd)
 ## random search
 
 des = generateRandomDesign(n = 1000, par.set = par.set)
