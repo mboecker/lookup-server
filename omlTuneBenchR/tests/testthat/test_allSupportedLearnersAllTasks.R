@@ -9,7 +9,7 @@ learners = c("classif.kknn", "classif.glmnet", "classif.ranger", "classif.rpart"
 for (task.id in task.ids) {
   for (learner in learners) {
     test_that(learner, {
-      of = makeOmlBenchFunction(learner, task.id)
+      of = makeOmlBenchFunction(learner, task.id, include.extras = TRUE)
       expect_class(of, "smoof_function")
       
       # Get random parameter set
@@ -22,10 +22,10 @@ for (task.id in task.ids) {
       expect_number(res)
       
       # Assert that we get auc, accuracy, rmse, scimark and runtime.
-      expect_number(attr(res, "extras")[[1]][["auc"]])
-      expect_number(attr(res, "extras")[[1]][["rmse"]])
-      expect_number(attr(res, "extras")[[1]][["scimark"]])
-      expect_number(attr(res, "extras")[[1]][["runtime"]])
+      expect_number(attr(res, "extras")[[".lookup.auc"]])
+      expect_number(attr(res, "extras")[[".lookup.rmse"]])
+      expect_number(attr(res, "extras")[[".lookup.scimark"]])
+      expect_number(attr(res, "extras")[[".lookup.runtime"]])
     })
   }
 }
