@@ -7,8 +7,8 @@ library("checkmate")
 library("BBmisc")
 
 # Load the latest parameter definitions from the omlbot github repo.
-source("https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botMakeLrnPsSets.R")
-source("https://raw.githubusercontent.com/ja-thomas/OMLbots/master/R/botSetLearnerParamPairs.R")
+source("botMakeLrnPsSets.R")
+source("botSetLearnerParamPairs.R")
 
 # This function generates a named list with an entry for every known algorithm.
 # For every algorithm it has upper and lower bounds on each parameter.
