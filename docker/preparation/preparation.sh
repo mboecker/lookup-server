@@ -12,7 +12,7 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 url=https://www.openml.org/downloads/ExpDB_SNAPSHOT.sql.gz
 file=ExpDB_SNAPSHOT.sql.gz
-database=openml
+database=openml_native_full
 
 # 1. check if DB exists
 RESULT=`mysql -e "SHOW DATABASES" | grep $database`
@@ -23,6 +23,7 @@ else
   # 2+3. download file
   if [ ! -f $file ]; then
     echo "File $file not found! We will download it..."
+    # axel can download a bit faster with multiple connections
     if command -v axel >/dev/null; then
       axel -n 4 -o $file $url 
     else
@@ -31,18 +32,20 @@ else
   fi
   # 4. load it into mysql
   echo "Importing dump into mysql"
+  mysql -e "CREATE DATABASE $database;"
   if command -v pv >/dev/null; then
-    pv $file | gunzip | mysql
+    # pv can give us a fancy progress bar
+    pv $file | gunzip | mysql -u root $database
   else
-    zcat $file | mysql
+    zcat $file | mysql -u root $database
   fi
 fi
 
 # 5.#
 echo "Preparing database for exporting small subset"
-mysql -u root -p < mysql_export_task3.sql
+mysql -u root < mysql_export_task3.sql
 echo "Preparing database for exporting"
-mysql -u root -p < mysql_export.sql
+mysql -u root < mysql_export.sql
 
 # 6.
 echo "Prepare Parameter Ranges..."
