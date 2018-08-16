@@ -63,7 +63,7 @@ getTableFromDB = function(task_id, algo_id) {
     function_ids = c(4,45,54,59,63)
     method_names = c("auc","accuracy","rmse","scimark","runtime")
     
-    measures = sprintf("SELECT `source` AS `rid`, `function_id`, `value` FROM %s.`evaluation` JOIN %s.`run` ON source = rid WHERE `task_id` = '%i' AND `function_id` IN (4,45,54,59,63)", mysql_dbname_from, mysql_dbname_from, task_id)
+    measures = sprintf("SELECT `source` AS `rid`, `function_id`, `value` FROM %s.`evaluation` JOIN %s.`run` ON source = rid WHERE `task_id` = '%i' AND `function_id` IN (%s)", mysql_dbname_from, mysql_dbname_from, task_id, paste0(function_ids, collapse = ","))
     result = dbGetQuery(con, measures)
     
     # Remove runs which are not currently selected (sql query above selected too many.)
