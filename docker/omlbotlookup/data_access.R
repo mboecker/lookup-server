@@ -53,8 +53,15 @@ get_params_for_algo = function(algo_name) {
 #'
 #' @return A vector containing every task_id, which has been evaluated at least once.
 get_possible_task_ids = function() {
-  # TODO
-  return(3)
+  all_ids = c()
+
+  for(algo_id in get_algos()) {
+    sql.exp = sprintf("SELECT DISTINCT task_id FROM `%s`;", algo_id)
+    r = dbGetQuery(con, sql.exp)
+    all_ids = append(all_ids, r$task_id)
+  }
+
+  return(unique(all_ids))
 }
 
 
