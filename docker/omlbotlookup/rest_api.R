@@ -4,17 +4,8 @@ source("data_access.R")
 #' List all possible algorithm ids for the given task.
 #' @serializer unboxedJSON
 #' @get /algos
-rest_algos <- function(task = NULL) {
-  task_id = task
-  
-  if(is.null(task_id) || !is_number(task_id)) {
-    error_msg = "Please supply the parameter 'task_id' for which you want the algorithm list as a number."
-    return(json_error(error_msg))
-  }
-  
-  possible_algos = substring(names(get_algos_for_task(task_id)), 5) # remove "mlr." from algo ids
-  
-  return(list(possible_algo_names = possible_algos))
+rest_algos <- function() {
+  get_algos()
 }
 
 #' Return the performance of the closest points

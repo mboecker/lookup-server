@@ -220,3 +220,9 @@ get_all_y = function(task_id, algo_id) {
   sql.exp = sprintf("SELECT auc,accuracy,rmse,scimark,runtime FROM `%s` WHERE task_id = '%s';", algo_id, task_id)
   dbGetQuery(con, sql.exp)
 }
+
+get_algos = function() {
+  sql.exp = "SHOW TABLES"
+  r = dbGetQuery(con, sql.exp)
+  r[[1]]
+}
