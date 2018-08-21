@@ -5,7 +5,7 @@ source("data_access.R")
 #' @serializer unboxedJSON
 #' @get /algos
 rest_algos <- function() {
-  get_algos()
+  list(possible_algo_ids = get_algos())
 }
 
 #' Return the performance of the closest points
@@ -125,5 +125,5 @@ rest_all_performances = function(task = NULL, algo = NULL) {
   }
   
   all_y = get_all_y(task, algo)
-  return(all_y)
+  list(performance_values = all_y)
 }
