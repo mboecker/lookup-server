@@ -119,3 +119,20 @@ rest_tasks = function() {
   all_task_ids = get_possible_task_ids()
   return(list(possible_task_ids = all_task_ids))
 }
+
+# List all possible performance values for a given task + algo combination.
+#' @get /ally
+rest_all_performances = function(task = NULL, algo = NULL) {
+  if(is.null(task)) {
+    error_msg = "Please supply the parameter 'task' for which you want the performances"
+    return(json_error(error_msg))
+  }
+  
+  if(is.null(algo)) {
+    error_msg = "Please supply the parameter 'algo' for which you want the performances"
+    return(json_error(error_msg))
+  }
+  
+  all_y = get_all_y(task, algo)
+  return(all_y)
+}

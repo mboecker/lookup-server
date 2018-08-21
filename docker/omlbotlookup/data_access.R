@@ -11,7 +11,7 @@ source("helper.R")
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
-mysql_dbname = "openml"
+mysql_dbname = "openml_reformat_backup_full"
 mysql_host = "127.0.0.1"
 
 # Delete the cache after 120 seconds
@@ -214,4 +214,9 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   res = merge(res[, c("task_id", "rid", "setup", "distance"), with = FALSE], table, all.x = TRUE, all.y = FALSE, sort = FALSE)
 
   return(res)
+}
+
+get_all_y = function(task_id, algo_id) {
+  sql.exp = sprintf("SELECT auc,accuracy,rmse,scimark,runtime FROM `%s` WHERE task_id = '%s';", algo_id, task_id)
+  dbGetQuery(con, sql.exp)
 }
