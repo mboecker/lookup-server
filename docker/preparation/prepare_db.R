@@ -5,7 +5,7 @@ library("ParamHelpers")
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
-mysql_dbname_from = "openml_native_full"
+mysql_dbname_from = "openml_exporting"
 mysql_dbname_to = "openml_exporting_full"
 mysql_host = "127.0.0.1"
 

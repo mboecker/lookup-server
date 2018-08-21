@@ -10,12 +10,14 @@
 
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
+mysql_command="mysql -u root"
+mysqldump_command="mysqldump -u root --single-transaction"
 url=https://www.openml.org/downloads/ExpDB_SNAPSHOT.sql.gz
 file=ExpDB_SNAPSHOT.sql.gz
-database=openml_native_full
+database=openml_native
 
 # 1. check if DB exists
-RESULT=`mysql -e "SHOW DATABASES" | grep $database`
+RESULT=`$mysql_command -e "SHOW DATABASES" | grep $database`
 if [ "$RESULT" == "$database" ]; then
   echo "Database already exist. Skip importing dump."
 else
@@ -30,31 +32,29 @@ else
       wget $url -O $file
     fi
   fi
-  # 4. load it into mysql
+  # 4. load it into mysql into $database
   echo "Importing dump into mysql"
-  mysql -e "CREATE DATABASE $database;"
+  $mysql_command -e "CREATE DATABASE $database;"
   if command -v pv >/dev/null; then
     # pv can give us a fancy progress bar
-    pv $file | gunzip | mysql -u root $database
+    pv $file | gunzip | $mysql_command $database
   else
-    zcat $file | mysql -u root $database
+    zcat $file | $mysql_command $database
   fi
 fi
 
-# 5.#
-echo "Preparing database for exporting small subset"
-mysql -u root < mysql_export_task3.sql
+# 5. Write only usable data from `$database` into `openml_exporting`
 echo "Preparing database for exporting"
-mysql -u root < mysql_export.sql
+$mysql_command < mysql_export.sql
 
 # 6.
 echo "Prepare Parameter Ranges..."
-Rscript prepare_parameter_ranges.R
+Rscript prepare_parameter_ranges.R	
 
-# 7. 
+# 7. Read data from `openml_exporting`, re-format it in R and write it to `openml_exporting_full`
 echo "Reformat db..."
-Rscript prepare_parameter_ranges.R
+Rscript prepare_db.R
 
-# 8.
+# 8. Dump final reformatted database file
 echo "Done preparing. Exporting compressed data to reduced.sql.gz"
-mysqldump -u root -p --single-transaction openml_exporting | gzip > reduced.sql.gz
+$mysqldump_command openml_exporting_full | gzip > reduced.sql.gz
