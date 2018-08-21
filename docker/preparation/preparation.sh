@@ -51,10 +51,10 @@ $mysql_command < mysql_export.sql
 echo "Prepare Parameter Ranges..."
 Rscript prepare_parameter_ranges.R	
 
-# 7. Read data from `openml_exporting`, re-format it in R and write it to `openml_exporting_full`
+# 7. Read data from `openml_exporting`, re-format it in R and write it to `openml_reformatted`
 echo "Reformat db..."
 Rscript prepare_db.R
 
 # 8. Dump final reformatted database file
-echo "Done preparing. Exporting compressed data to reduced.sql.gz"
-$mysqldump_command openml_exporting_full | gzip > reduced.sql.gz
+echo "Done preparing. Exporting compressed data to reformatted.sql.gz"
+$mysqldump_command openml_reformatted | gzip > reformatted.sql.gz
