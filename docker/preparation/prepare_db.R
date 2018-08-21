@@ -90,7 +90,7 @@ getTableFromDB = function(task_id, algo_id) {
 #' @param algo_name The algorithm name the parameter belongs to.
 #' @param param_name The parameter name.
 get_parameter_default = function(algo_name, param_name) {
-  params = get_params_for_algo(algo_name)
+  params = parameter_ranges[[algo_name]]$pars
   def = params[[param_name]]$default
   return(def)
 }
@@ -150,7 +150,17 @@ insertIntoDB = function(task_id, algo_id, t) {
       return(sprintf("`%s` %s", parameter_name, mysql_type))
     }))
     parameters = paste0(parameters, collapse = ", ")
-    sql.exp = sprintf("CREATE TABLE IF NOT EXISTS %s.`%s` (%s);", mysql_dbname_to, algo_id, parameters)
+    
+    keys = sapply(names(t), function(key_name) {
+      sprintf("KEY (`%s`)", key_name)
+    })
+    
+    keys = paste0(keys, collapse=", ")
+    
+    sql.exp = sprintf("CREATE TABLE IF NOT EXISTS %s.`%s` (%s, %s);", mysql_dbname_to, algo_id, parameters, keys)
+    
+    # cat(sprintf("Table DESC: %s\n", sql.exp))
+    
     dbExecute(con, sql.exp)
     
     t[,"task_id"] = task_id
