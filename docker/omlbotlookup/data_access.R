@@ -53,23 +53,8 @@ get_params_for_algo = function(algo_name) {
 #'
 #' @return A vector containing every task_id, which has been evaluated at least once.
 get_possible_task_ids = function() {
+  # TODO
   return(3)
-}
-
-#' Which algorithms have been run on this task?
-#'
-#' @param task_id This is `task_id` from the table `run` in the database.
-#'
-#' @return A named list, containing one entry for each different algorithm name, and the algorithm ids for each algorithm name.
-get_algos = function() {
-  # This requests the implementation_id to every of these input_ids.
-  sql.exp = paste0("SHOW TABLES")
-  
-  # Run query.
-  result = dbGetQuery(con, sql.exp)[[1]]
-  
-  # Return in the form list(algo_name = c(impl_id, impl_id, ...), algo_name = ...)
-  return(c(result))
 }
 
 
@@ -216,11 +201,20 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   return(res)
 }
 
+#' Returns all performance values for given task and algo.
+#' 
+#' @param task_id This is `task_id` from the table.
+#' @param algo_id This is the algo name from the table.
 get_all_y = function(task_id, algo_id) {
   sql.exp = sprintf("SELECT auc,accuracy,rmse,scimark,runtime FROM `%s` WHERE task_id = '%s';", algo_id, task_id)
   dbGetQuery(con, sql.exp)
 }
 
+#' Which algorithms have been run on this task?
+#'
+#' @param task_id This is `task_id` from the table `run` in the database.
+#'
+#' @return A named list, containing one entry for each different algorithm name, and the algorithm ids for each algorithm name.
 get_algos = function() {
   sql.exp = "SHOW TABLES"
   r = dbGetQuery(con, sql.exp)
