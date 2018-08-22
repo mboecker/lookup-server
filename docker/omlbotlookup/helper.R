@@ -5,7 +5,7 @@ is_number = function(x) {
 }
 
 json_error <- function(err_msg, more=list()) {
-  append(list(error_message = err_msg), more)
+  c(list(error_message = err_msg), more)
 }
 
 get_nearest_neighbour = function(table_trafo_scaled, parameters_trafo_scaled, numeric_params) {

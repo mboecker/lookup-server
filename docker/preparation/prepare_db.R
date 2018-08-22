@@ -121,7 +121,7 @@ replace_na_with_defaults = function(table, algo_name, parameter_names) {
 insertIntoDB = function(task_id, algo_id, t) {
   if(nrow(t) > 0) {
     parameters = "task_id INTEGER UNSIGNED"
-    parameters = append(parameters, lapply(names(t), function(parameter_name) {
+    parameters = c(parameters, lapply(names(t), function(parameter_name) {
       class_of_parameter = class(simplify2array(t[1, ..parameter_name]))
       mysql_type = class_of_parameter
       if(parameter_name == "respect.unordered.factors") {

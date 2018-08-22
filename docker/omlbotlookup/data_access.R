@@ -58,7 +58,7 @@ get_possible_task_ids = function() {
   for(algo_id in get_algos()) {
     sql.exp = sprintf("SELECT DISTINCT task_id FROM `%s`;", algo_id)
     r = dbGetQuery(con, sql.exp)
-    all_ids = append(all_ids, r$task_id)
+    all_ids = c(all_ids, r$task_id)
   }
 
   return(unique(all_ids))
