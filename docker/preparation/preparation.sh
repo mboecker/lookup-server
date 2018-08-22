@@ -27,7 +27,7 @@ else
     echo "File $file not found! We will download it..."
     # axel can download a bit faster with multiple connections
     if command -v axel >/dev/null; then
-      axel -n 4 -o $file $url 
+      axel -a -n 4 -o $file $url 
     else
       wget $url -O $file
     fi
