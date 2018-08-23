@@ -11,7 +11,7 @@ source("helper.R")
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
-mysql_dbname = "openml_reformat_backup_full"
+mysql_dbname = "openml"
 mysql_host = "127.0.0.1"
 
 # Delete the cache after 120 seconds
