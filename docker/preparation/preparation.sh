@@ -32,6 +32,10 @@ else
       wget $url -O $file
     fi
   fi
+
+  # Patch .sql file because "key is too large"
+  sh patch_sql.sh
+
   # 4. load it into mysql into $database
   echo "Importing dump into mysql"
   $mysql_command -e "CREATE DATABASE $database;"
