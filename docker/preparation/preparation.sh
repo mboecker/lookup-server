@@ -44,9 +44,9 @@ else
   $mysql_command -e "CREATE DATABASE $database;"
   if command -v pv >/dev/null; then
     # pv can give us a fancy progress bar
-    pv $file | gunzip | $mysql_command $database
+    pv $filepatched | gunzip | $mysql_command $database
   else
-    zcat $file | $mysql_command $database
+    zcat $filepatched | $mysql_command $database
   fi
 fi
 
