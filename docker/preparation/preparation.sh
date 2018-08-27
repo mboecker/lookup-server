@@ -14,6 +14,7 @@ mysql_command="mysql -u root"
 mysqldump_command="mysqldump -u root --single-transaction"
 url=https://www.openml.org/downloads/ExpDB_SNAPSHOT.sql.gz
 file=ExpDB_SNAPSHOT.sql.gz
+filepatched=ExpDB_SNAPSHOT_patched.sql.gz
 database=openml_native
 
 # 1. check if DB exists
@@ -23,7 +24,7 @@ if [ "$RESULT" == "$database" ]; then
 else
   echo "Database does not exist. Importing dump now..."
   # 2+3. download file
-  if [ ! -f $file ]; then
+  if [ ! -f $file ] && [ ! -f $filepatched ]; then
     echo "File $file not found! We will download it..."
     # axel can download a bit faster with multiple connections
     if command -v axel >/dev/null; then
@@ -33,8 +34,10 @@ else
     fi
   fi
 
-  # Patch .sql file because "key is too large"
-  sh patch_sql.sh
+  if [ ! -f $filepatched ]; then
+    echo "Patching file to avoid 'key is too large' error."
+    pv $file | gzip -d | sed --expression="s/ENGINE/ROW_FORMAT=DYNAMIC &/" | gzip > $filepatched
+  fi
 
   # 4. load it into mysql into $database
   echo "Importing dump into mysql"
