@@ -59,6 +59,7 @@ echo "Prepare Parameter Ranges..."
 Rscript prepare_parameter_ranges.R	
 
 # 7. Read data from `openml_exporting`, re-format it in R and write it to `openml_reformatted`
+$mysql_command -e "DROP DATABASE IF EXISTS openml_reformatted; CREATE DATABASE openml_reformatted;"
 echo "Reformat db..."
 Rscript prepare_db.R
 
