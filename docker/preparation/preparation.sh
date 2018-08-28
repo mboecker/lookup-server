@@ -10,6 +10,7 @@
 
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
+set -o pipefail
 mysql_command="mysql -u root"
 mysqldump_command="mysqldump -u root --single-transaction"
 url=https://www.openml.org/downloads/ExpDB_SNAPSHOT.sql.gz
