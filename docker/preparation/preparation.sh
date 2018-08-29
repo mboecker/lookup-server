@@ -37,7 +37,7 @@ else
 
   if [ ! -f $filepatched ]; then
     echo "Patching file to avoid 'key is too large' error."
-    pv $file | gzip -d | sed --expression="s/ENGINE/ROW_FORMAT=DYNAMIC &/" | gzip > $filepatched
+    pv $file | gzip -d | sed -e 's/ENGINE/ROW_FORMAT=DYNAMIC &/' -e 's/`name` varchar(512)/`name` varchar(255)/' | gzip > $filepatched
   fi
 
   # 4. load it into mysql into $database
