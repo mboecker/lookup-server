@@ -53,7 +53,7 @@ fi
 
 # 5. Write only usable data from `$database` into `openml_exporting`
 echo "Preparing database for exporting"
-$mysql_command < mysql_export.sql
+$mysql_command $database < mysql_export.sql
 
 # 6.
 echo "Prepare Parameter Ranges..."
