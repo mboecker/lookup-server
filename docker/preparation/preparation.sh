@@ -65,5 +65,5 @@ echo "Reformat db..."
 Rscript prepare_db.R
 
 # 8. Dump final reformatted database file
-echo "Done preparing. Exporting compressed data to reformatted.sql.gz"
-$mysqldump_command openml_reformatted | gzip > reformatted.sql.gz
+echo "Done preparing. Exporting compressed data to reduced.sql.gz"
+$mysqldump_command openml_reformatted | gzip > reduced.sql.gz
