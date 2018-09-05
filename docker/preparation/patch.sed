@@ -1,2 +1,2 @@
 s/,\s*CONSTRAINT.*)/)/g
-s/UNIQUE KEY\s+`implementation_id`\s+(`implementation_id`,\s*`name`)\s*,\s*//g
+s/UNIQUE KEY `implementation_id` (`implementation_id`,`name`),//g

@@ -52,6 +52,7 @@ else
 fi
 
 # 5. Write only usable data from `$database` into `openml_exporting`
+# TODO: only do this if database `openml_exporting` not found.
 echo "Preparing database for exporting"
 $mysql_command $database < mysql_export.sql
 
