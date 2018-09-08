@@ -35,9 +35,14 @@ else
     fi
   fi
 
+  # Patch .sql file to remove "key is too large" error
   if [ ! -f $filepatched ]; then
     echo "Patching file to avoid 'key is too large' error."
-    pv $file | gunzip | sed -f patch.sed | gzip > $filepatched
+    if command -v pv >/dev/null; then
+      pv $file | gunzip | sed -f patch.sed | gzip > $filepatched
+    else
+      zcat $file | sed -f patch.sed | gzip > $filepatched
+    fi
   fi
 
   # 4. load it into mysql into $database
