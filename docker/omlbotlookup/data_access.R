@@ -25,6 +25,8 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 # This file contains parameter range data obtained from the omlbot-sourcecode.
 parameter_ranges = readRDS("parameter_ranges.Rds")
 
+# This file contains the number of features and entries for every task.
+task_metadata = readRDS("task_metadata.Rds")
 
 #' Return a list of parameter definitions. This list contains every necessary parameter for the given algorithm.
 #'
@@ -91,22 +93,12 @@ is_parameter_list_ok = function(algo_name, params) {
 #'
 #' @return nrow and ncol of the dataset.
 get_task_metadata = function(task_id) {
-  url = paste0("https://www.openml.org/api/v1/json/data/qualities/", task_id)
-  ret = httr::GET(url, httr::accept_json())
-  
-  # No such task
-  if(httr::status_code(ret) != 200) {
-    return(NULL)
-  }
-  
-  # Re-format data
-  res = httr::content(ret)
-  qualities = as.list(BBmisc::extractSubList(res$data_qualities$quality, "value"))
-  names(qualities) = BBmisc::extractSubList(res$data_qualities$quality, "name")
+  # Find row in task_metadata
+  row = task_metadata[task_metadata$task_id == task_id, ]
   
   # Extract data
-  nrow = as.numeric(qualities$NumberOfInstances)
-  ncol = as.numeric(qualities$NumberOfFeatures) - 1
+  nrow = as.numeric(row$instances)
+  ncol = as.numeric(row$features) - 1
   
   # Return data
   return(list(nrow = nrow, ncol = ncol))
