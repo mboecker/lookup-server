@@ -2,6 +2,7 @@
 
 export(connectToOmlTuneServer)
 export(disconnectFromOmlTuneServer)
+export(getAvailableAlgos)
 export(getAvailableTasks)
 export(makeOmlBenchFunction)
 export(startOmlTuneServer)
