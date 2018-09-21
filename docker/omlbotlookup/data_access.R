@@ -182,8 +182,8 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   # scale table and query to 01
   # mins = sapply(table[, ..numeric_params, drop = FALSE], min, na.rm = TRUE)
   # maxs = sapply(table[, ..numeric_params, drop = FALSE], max, na.rm = TRUE)
-  mins = getLower(parameter_ranges[[algo_id]])
-  maxs = getUpper(parameter_ranges[[algo_id]])
+  mins = getLower(parameter_ranges[[algo_id]])[numeric_params] #the second subsetting is necessary because we have lowers for numeric params that are not present
+  maxs = getUpper(parameter_ranges[[algo_id]])[numeric_params]
   table_trafo_scaled = copy(table)
   tmp = scale(table_trafo_scaled[, ..numeric_params, drop = FALSE], center = mins, scale = maxs - mins)
   table_trafo_scaled[, (numeric_params) := as.data.table(tmp)]

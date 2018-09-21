@@ -46,3 +46,18 @@ get_nearest_neighbour = function(table_trafo_scaled, parameters_trafo_scaled, nu
   return(nnres)
 }
 
+# makes sure that characters are converted the right way according to the parameter set
+# this is important so that NA becomes eg. NA_integer_
+type_save_convert = function(parameters, par_set){
+  Map(function(par_vals, par_type) {
+    if (par_type %in% getTypeStringsNumeric(include.int = FALSE)) {
+      as.numeric(par_vals)
+    } else if (par_type %in% getTypeStringsInteger()) {
+      as.integer(par_vals)
+    } else if (par_type %in% c(getTypeStringsCharacter(), getTypeStringsDiscrete())) {
+      as.character(par_vals)
+    } else if (par_vals %in% getTypeStringsLogical()) {
+      as.logical(par_vals)
+    }
+  }, par_vals = parameters[getParamIds(par_set)], par_type = getParamTypes(par_set))
+}

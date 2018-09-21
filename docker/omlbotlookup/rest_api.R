@@ -28,9 +28,11 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   } else if (!isTRUE({err_msg = checkList(parameters, names = "named")})) {
     return(json_error(sprintf("parameters = %s: %s",parameters, err_msg)))
   }
-  
-  parameters = lapply(parameters, function(x) if (is.character(x)) type.convert(x, as.is = TRUE) else x)
+
+  par_set = parameter_ranges[[algo]]
+  parameters = type_save_convert(parameters, par_set)
   parameters = as.data.table(parameters)
+
   
   if (!isTRUE({err_msg = checkInt(task)})) {
     return(json_error(sprintf("task = %s: %s",task, err_msg)))
