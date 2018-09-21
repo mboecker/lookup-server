@@ -8,7 +8,7 @@ connectToOmlTuneServer(adress = NULL, timeout = 10L)
 }
 \arguments{
 \item{adress}{(\code{character(1)})
-The URL where we can reach the API (e.g. \code{localhost:8746})}
+The URL where we can reach the API (e.g. \code{http://localhost:8746})}
 
 \item{timeout}{(\code{integer(1)})
 How many seconds should we wait until we await a response.

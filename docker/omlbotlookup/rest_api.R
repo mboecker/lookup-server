@@ -112,8 +112,9 @@ rest_tasks = function() {
 }
 
 # List all possible performance values for a given task + algo combination.
-#' @get /ally
-rest_all_performances = function(task = NULL, algo = NULL) {
+#' @serializer contentType list(type="application/octet-stream")
+#' @get /rds
+rest_rds = function(task = NULL, algo = NULL) {
   if(is.null(task)) {
     error_msg = "Please supply the parameter 'task' for which you want the performances"
     return(json_error(error_msg))
@@ -124,6 +125,8 @@ rest_all_performances = function(task = NULL, algo = NULL) {
     return(json_error(error_msg))
   }
   
-  all_y = get_all_y(task, algo)
-  list(performance_values = all_y)
+  complete_table = get_all(task, algo)
+  tfile = tempfile()
+  saveRDS(complete_table, file = tfile)
+  readBin(tfile, "raw", n=file.info(tfile)$size)
 }

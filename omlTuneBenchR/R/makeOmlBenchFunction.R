@@ -1,7 +1,7 @@
 #' @title Creates a function that will wrap the API
 #' @description Wraps the API Call in a function that returns the performance of a defined learner and `task.id` for a given `x` using the OmlBench API.
 #' @param learner.name (`character(1)`)
-#'   Defines the learner.
+#'   Defines the learner. (e.g. `"classif.rpart"`)
 #' @param task.id (`integer(1)`)
 #'   Defines the task id the learner is optimized on.
 #' @param api.chunksize (`numeric(1)`)

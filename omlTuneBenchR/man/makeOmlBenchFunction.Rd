@@ -9,7 +9,7 @@ makeOmlBenchFunction(learner.name, task.id, api.chunksize = 20,
 }
 \arguments{
 \item{learner.name}{(\code{character(1)})
-Defines the learner.}
+Defines the learner. (e.g. \code{"classif.rpart"})}
 
 \item{task.id}{(\code{integer(1)})
 Defines the task id the learner is optimized on.}

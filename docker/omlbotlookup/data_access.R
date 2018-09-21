@@ -204,8 +204,8 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
 #' 
 #' @param task_id This is `task_id` from the table.
 #' @param algo_id This is the algo name from the table.
-get_all_y = function(task_id, algo_id) {
-  sql.exp = sprintf("SELECT auc,accuracy,rmse,scimark,runtime FROM `%s` WHERE task_id = '%s';", algo_id, task_id)
+get_all = function(task_id, algo_id) {
+  sql.exp = sprintf("SELECT * FROM `%s` WHERE task_id = '%s';", algo_id, task_id)
   dbGetQuery(con, sql.exp)
 }
 
