@@ -36,7 +36,7 @@ getTableFromDB = function(task_id, algo_id) {
     result = dbGetQuery(con, sql.exp)
     for (i in seq_len(ncol(result))) {
       if (is.character(result[[i]])) {
-        result[[i]] = type.convert(result[[i]])  
+        result[[i]] = type.convert(result[[i]], as.is = TRUE)  
       }
     }
     return(result)
