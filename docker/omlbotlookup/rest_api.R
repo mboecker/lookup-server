@@ -56,14 +56,9 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   }
   
   # Lookup performance in database
-  result = get_nearest_setup(algo, task, parameters)
-  
-  if(is.null(result)) {
-    return(json_error("An error occured."))
-  }
-  
-  if(!is.null(result$error)) {
-    return(json_error(paste(result$error, collapse = ", ")))
+  result = tryCatch(get_nearest_setup(algo, task, parameters), error = function(e) e)
+  if (inherits(result, c("try-error", "error"))) {
+    return(json_error(sprintf("Error in getting nearest setup: %s", as.character(result))))
   } else {
     return(result)
   }

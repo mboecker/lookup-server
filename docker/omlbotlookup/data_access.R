@@ -116,6 +116,9 @@ get_cached_task_metadata = memoise(get_task_metadata, ~timeout(cache.timeout))
 get_table = function(algo_id, task_id) {
   sql.exp = sprintf("SELECT * FROM `%s` WHERE task_id = '%s'", algo_id, task_id)
   r = dbGetQuery(con, sql.exp)
+  if (nrow(r) == 0) {
+    stopf("No runs for the combination of learner %s and task %i in the DB", algo_id, task_id)
+  }
   setDT(r)
   for(rowname in names(r)) {
     if(length(levels(as.factor(simplify2array(r[,..rowname])))) == 2) {
@@ -154,10 +157,6 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   # The column names represent the parameter name.
   # There are also 5 columns for the 5 evaluation measures.
   table = get_table(algo_id, task_id)
-  
-  if(is.null(table)) {
-    return(list(error = "No suitable points found."))
-  }
   
   parameters_trafo = copy(parameters) # will contain parameters trasnformed according to taks
 
