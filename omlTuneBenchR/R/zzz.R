@@ -4,6 +4,7 @@
 #' @import httr
 #' @import jsonlite
 #' @importFrom stats setNames
+#' @importFrom utils download.file
 
 omlTuneBenchR = new.env(parent = emptyenv())
 omlTuneBenchR$debug = FALSE

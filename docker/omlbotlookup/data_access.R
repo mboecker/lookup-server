@@ -117,7 +117,7 @@ get_table = function(algo_id, task_id) {
   sql.exp = sprintf("SELECT * FROM `%s` WHERE task_id = '%s'", algo_id, task_id)
   r = dbGetQuery(con, sql.exp)
   if (nrow(r) == 0) {
-    stopf("No runs for the combination of learner %s and task %i in the DB", algo_id, task_id)
+    stop(sprintf("No runs for the combination of learner %s and task %i in the DB", algo_id, task_id))
   }
   setDT(r)
   for(rowname in names(r)) {
