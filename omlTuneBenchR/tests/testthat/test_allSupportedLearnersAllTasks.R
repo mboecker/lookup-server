@@ -6,10 +6,12 @@ expect_true(r)
 task.ids = getAvailableTasks()
 learners = c("classif.kknn", "classif.glmnet", "classif.ranger", "classif.rpart")# FIXME: , "classif.svm", "classif.xgboost")
 
-for (task.id in task.ids) {
-  for (learner in learners) {
+availiable_tasks = readRDS("../availiable_tasks.Rds")
+
+for (learner in learners) {
+  for (task_id in availiable_tasks[[learner]]) {
     test_that(learner, {
-      of = makeOmlBenchFunction(learner, task.id, include.extras = TRUE)
+      of = makeOmlBenchFunction(learner, task_id, include.extras = TRUE)
       expect_class(of, "smoof_function")
       
       # Get random parameter set

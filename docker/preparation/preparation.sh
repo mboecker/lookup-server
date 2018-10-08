@@ -70,6 +70,9 @@ $mysql_command -e "DROP DATABASE IF EXISTS openml_reformatted; CREATE DATABASE o
 echo "Reformat db..."
 Rscript prepare_db.R
 
+echo "Prepare availiable tasks..."
+Rscript select_task_algo_combinations.R
+
 # 8. Dump final reformatted database file
 echo "Done preparing. Exporting compressed data to reduced.sql.gz"
 $mysqldump_command openml_reformatted | gzip > reduced.sql.gz
