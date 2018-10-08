@@ -50,7 +50,7 @@ readApiResult = function(x, learner.name, task.id, include.extras, api.chunksize
     httr.res = httr::POST(omlTuneBenchR$connection, query = query, httr::accept_json())
     res = httr::content(httr.res)
     if (!is.null(res$error)) {
-      stop(res$error)
+      stop(paste0("Server-side error: ", res$error))
     } else {
       return(res)
     }

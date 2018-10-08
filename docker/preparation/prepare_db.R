@@ -165,6 +165,11 @@ insertIntoDB = function(task_id, algo_id, t) {
     
     t[,"task_id"] = task_id
     
+    # Replace invalid default values with NA
+    if(algo_id == "classif.svm") {
+      t[t$kernel != "polynomial"]$degree = NA
+    }
+    
     writeRows(algo_id, t)
   }
 }

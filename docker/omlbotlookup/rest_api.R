@@ -32,7 +32,6 @@ rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL
   par_set = parameter_ranges[[algo]]
   parameters = type_save_convert(parameters, par_set)
   parameters = as.data.table(parameters)
-
   
   if (!isTRUE({err_msg = checkInt(task)})) {
     return(json_error(sprintf("task = %s: %s",task, err_msg)))
