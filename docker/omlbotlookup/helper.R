@@ -54,10 +54,10 @@ type_save_convert = function(parameters, par_set){
       as.numeric(par_vals)
     } else if (par_type %in% getTypeStringsInteger()) {
       as.integer(par_vals)
+    } else if (par_type %in% getTypeStringsLogical()) {
+      as.logical(par_vals)
     } else if (par_type %in% c(getTypeStringsCharacter(), getTypeStringsDiscrete())) {
       as.character(par_vals)
-    } else if (par_vals %in% getTypeStringsLogical()) {
-      as.logical(par_vals)
     }
   }, par_vals = parameters[getParamIds(par_set)], par_type = getParamTypes(par_set))
 }
