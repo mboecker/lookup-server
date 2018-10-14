@@ -59,7 +59,9 @@ fi
 # 5. Write only usable data from `$database` into `openml_exporting`
 # TODO: only do this if database `openml_exporting` not found.
 echo "Preparing database for exporting"
-$mysql_command $database < mysql_export.sql
+$mysql_command $database < sql/shrink_db.sql
+$mysql_command $database < sql/select_runs.sql		# Note: to use only task 3, use "select_runs_task3" here instead of "select_runs".
+$mysql_command $database < sql/insert_run_data.sql
 
 # 6.
 echo "Prepare Parameter Ranges..."
