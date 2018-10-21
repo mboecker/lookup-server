@@ -77,6 +77,15 @@ is_parameter_list_ok = function(algo_name, params) {
   assertChoice(algo_name, names(parameter_ranges))
   par_set = parameter_ranges[[algo_name]]
   
+  for (param.name in names(params)) {
+    if(!is.na(params[[param.name]])) {
+      trafo.inverse = par_set$pars[[param.name]]$trafo.inverse
+      if(!is.null(trafo.inverse)) {
+        params[[param.name]] = trafo.inverse(params[[param.name]])
+      }
+    }
+  }
+  
   res = tryCatch(isFeasible(par_set, params), error = function(e) e)
   if (inherits(res, c("try-error", "error"))) {
     as.character(res)
