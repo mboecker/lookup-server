@@ -7,7 +7,7 @@ if [ ! -f $file ]; then
     wget https://www.statistik.tu-dortmund.de/~richter/reduced.sql.gz -O $file
 fi
 if command -v pv >/dev/null; then
-  zcat $file | pv --progress --size `gzip -l $file | sed -n 2p | awk '{print $2}'` --name 'Importing...' | ./import-data.sh
+  pv --progress --name 'Importing...' $file | gunzip | ./import-data.sh
 else
   zcat $file | ./import-data.sh
 fi
