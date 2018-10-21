@@ -191,6 +191,9 @@ updateDatabase = function(task_id, algo_id) {
   }
   
   cat(sprintf("Removing %.1f%% (%d/%d) of runs.\r\n", (sum(!cc) * 100.0 / dim(t)[1]), sum(!cc), dim(t)[1]))
+  if(algo_id = "classif.ranger") {
+    cat(sprintf("Ranger: Ratio of 'min.node.size is NA' / all runs: %.2f%%", 100 * sum(is.na(t$min.node.size)) / dim(t)[1]))
+  }
   
   t = t[cc,]
   
