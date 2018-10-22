@@ -10,9 +10,10 @@ rest_algos <- function() {
 
 #' Return the performance of the closest points
 #' @serializer unboxedJSON
-#' @param task the task id
-#' @param algo the algorithm name (e.g. classif.knn) (without leading mlr. as in the DB)
-#' @param parameters named list of parameter settings. Will be converted to a data.frame. Each row represents one parameter setting.
+#' @param task [numeric(1)] the task id
+#' @param algo [character(1)] the algorithm name (e.g. classif.knn) (without leading mlr. as in the DB)
+#' @param parameters [list] named list of untransformed parameter settings. 
+#' Each list item contains the vector of settings for one parameter. All vectors have to be of the same length. Will be converted to a data.frame. Each row represents one parameter setting.
 #' @get /
 #' @post /
 rest_estimate_performance = function(task = NULL, algo = NULL, parameters = NULL) {
