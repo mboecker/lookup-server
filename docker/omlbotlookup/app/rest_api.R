@@ -114,9 +114,29 @@ rest_rds = function(task = NULL, algo = NULL) {
     error_msg = "Please supply the parameter 'algo' for which you want the performances"
     return(json_error(error_msg))
   }
-  
-  complete_table = get_all(task, algo)
+  complete_table = get_table(algo, task)
+  setDF(complete_table)
   tfile = tempfile()
   saveRDS(complete_table, file = tfile)
+  readBin(tfile, "raw", n=file.info(tfile)$size)
+}
+
+# List all possible performance values for a given task + algo combination.
+#' @serializer contentType list(type="application/octet-stream")
+#' @get /csv
+rest_csv = function(task = NULL, algo = NULL) {
+  if(is.null(task)) {
+    error_msg = "Please supply the parameter 'task' for which you want the performances"
+    return(json_error(error_msg))
+  }
+  
+  if(is.null(algo)) {
+    error_msg = "Please supply the parameter 'algo' for which you want the performances"
+    return(json_error(error_msg))
+  }
+  
+  complete_table = get_table(algo, task)
+  tfile = tempfile()
+  write.csv(complete_table, file = tfile)
   readBin(tfile, "raw", n=file.info(tfile)$size)
 }

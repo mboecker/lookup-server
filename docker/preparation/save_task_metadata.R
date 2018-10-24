@@ -19,4 +19,4 @@ meta_data$features = result[result$quality == "NumberOfFeatures", c("value")]
 meta_data$instances = result[result$quality == "NumberOfInstances", c("value")]
 
 # Save to file
-saveRDS(meta_data, file = "../omlbotlookup/task_metadata.Rds")
+saveRDS(meta_data, file = "../omlbotlookup/app/task_metadata.Rds")

@@ -111,22 +111,19 @@ get_cached_task_metadata = memoise(get_task_metadata, ~timeout(cache.timeout))
 #'
 #' @param algo_ids A vector of algorithm_ids. Typically, this is either one algorithm_id of a specific algorithm implementation or a vector of every algorithm id with a specific name (as acquired by get_algo_ids_for_algo_name(..))
 #' @param task_id A single task_id, on which the algorithm has been run.
-#' @param parameter_names A vector or list of 
 #'
 #' @return A dataframe containing: A column "setup", with the setup_id. A column "<parameter_name>" for every parameter. And one row of data for every setup, that has been run with one of the given algorithms, containing the parameter_data of that run.
 get_table = function(algo_id, task_id) {
   sql.exp = sprintf("SELECT * FROM `%s` WHERE task_id = '%s'", algo_id, task_id)
   r = dbGetQuery(con, sql.exp)
-  if (nrow(r) == 0) {
-    stop(sprintf("No runs for the combination of learner %s and task %i in the DB", algo_id, task_id))
-  }
   setDT(r)
+  # convert columns wiht 0,1 values to logicals
   for(rowname in names(r)) {
-    if(length(levels(as.factor(simplify2array(r[,..rowname])))) == 2) {
-      r[,rowname] = as.logical(simplify2array(r[,..rowname]))
+    if (all(r[[rowname]] %in% c(0,1))) {
+      r[[rowname]] = as.logical(r[[rowname]])
     }
   }
-  r
+  return(r)
 }
 
 
@@ -158,6 +155,9 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   # The column names represent the parameter name.
   # There are also 5 columns for the 5 evaluation measures.
   table = get_table(algo_id, task_id)
+  if (nrow(table) == 0) {
+    stop(sprintf("No runs for the combination of learner %s and task %i in the DB", algo_id, task_id))
+  }
   
   parameters_trafo = copy(parameters) # will contain parameters trasnformed according to taks
 
@@ -198,15 +198,6 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   res = merge(res[, c("task_id", "rid", "setup", "distance"), with = FALSE], table, all.x = TRUE, all.y = FALSE, sort = FALSE)
 
   return(res)
-}
-
-#' Returns all performance values for given task and algo.
-#' 
-#' @param task_id This is `task_id` from the table.
-#' @param algo_id This is the algo name from the table.
-get_all = function(task_id, algo_id) {
-  sql.exp = sprintf("SELECT * FROM `%s` WHERE task_id = '%s';", algo_id, task_id)
-  dbGetQuery(con, sql.exp)
 }
 
 #' Which algorithms have been run on this task?

@@ -16,6 +16,8 @@ RUN Rscript -e "chooseCRANmirror(ind=29); install.packages(c('stringi','plumber'
 
 EXPOSE 8746
 
-CMD /root/startup.sh
+COPY app/. /root/
 
-COPY parameter_ranges.Rds task_metadata.Rds data_access.R helper.R paramToJSONList.R rest_api.R rest_server.R startup.sh import_db.sh wait_for_mysqld.sh /root/
+COPY startup.sh import_db.sh wait_for_mysqld.sh /root/
+
+CMD /root/startup.sh
