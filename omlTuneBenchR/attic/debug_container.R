@@ -2,15 +2,14 @@
 source("data_access.R")
 source("helper.R")
 
-algo = algo_id = "classif.glmnet"
-task = task_id = 9911
+algo = algo_id = "classif.ranger"
+task = task_id = 219
 ps = parameter_ranges[[algo]]
 pv = sampleValue(ps)
 parameters = jsonlite::toJSON(pv)
 
-
-
 table = get_table(algo_id, task_id)
+
 
 
 

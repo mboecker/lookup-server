@@ -96,6 +96,10 @@ is_parameter_list_ok = function(algo_name, params) {
 get_task_metadata = function(task_id) {
   # Find row in task_metadata
   row = task_metadata[task_metadata$task_id == task_id, ]
+
+  if (nrow(row) != 1) {
+    stop(sprintf("The task metadata for task %i has %i results!", task_id, nrow(row)))
+  }
   
   # Extract data
   nrow = as.numeric(row$instances)

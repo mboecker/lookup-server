@@ -10,13 +10,16 @@ mysql_host = "127.0.0.1"
 con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname_from, host = mysql_host)
 
 # Get raw data in wrong format
-sql.exp = sprintf("SELECT data, quality, value FROM %s.data_quality WHERE quality='NumberOfFeatures' OR quality='NumberOfInstances' ORDER BY `data`", mysql_dbname_from)
-result = dbGetQuery(con, sql.exp)
+sql.exp = "SELECT t1.data, t1.quality, t1.value, t2.task_id FROM
+(SELECT data, quality, value FROM data_quality WHERE quality='NumberOfFeatures' OR quality='NumberOfInstances') t1
+INNER JOIN
+(SELECT task_id, value AS data FROM task_inputs WHERE input = 'source_data' AND task_id IN (SELECT DISTINCT task_id FROM run WHERE uploader = 2702)) t2
+ON t1.data = t2.data;"
 
-# Re-format data
-meta_data = data.frame(task_id = unique(result$data))
-meta_data$features = result[result$quality == "NumberOfFeatures", c("value")]
-meta_data$instances = result[result$quality == "NumberOfInstances", c("value")]
+result = dbGetQuery(con, sql.exp)
+result = tidyr::spread(result, key = quality, value = value)
+
+result = dplyr::rename(result, features = "NumberOfFeatures", instances = "NumberOfInstances")
 
 # Save to file
-saveRDS(meta_data, file = "../omlbotlookup/app/task_metadata.Rds")
+saveRDS(result, file = "../omlbotlookup/app/task_metadata.Rds")
