@@ -168,7 +168,7 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
     # Transform data.independet params that are not defined like in the data base to data.dependent  
     data.trafo = parameter_ranges[[algo_id]]$pars[[parameter_name]]$data.trafo
     if (!is.null(data.trafo)) {
-      dict = get_cached_task_metadata(task_id)
+      dict = get_task_metadata(task_id)
       parameters_trafo[[parameter_name]] = data.trafo(dict = dict, par = parameters_trafo)
     }
     
