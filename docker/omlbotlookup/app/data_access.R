@@ -214,3 +214,24 @@ get_algos = function() {
   r = dbGetQuery(con, sql.exp)
   r[[1]]
 }
+
+#' Returns a table containing important information on the tasks availiable in the database.
+#' 
+#' @return [data.frame] 
+get_overview_table = function() {
+  # Select number of runs with given algo and every task from database.
+  table = lapply(get_algos(), function(algo_id) {
+    sql.exp = sprintf("SELECT task_id, COUNT(*) as `n_%s_runs` FROM `%s` GROUP BY task_id;", substring(algo_id, 9), algo_id)
+    result = dbGetQuery(con, sql.exp)
+    result
+  })
+  
+  # Merge list of results into table.
+  table = Reduce(function(x,y) merge(x,y, all=T), table, table[[1]])
+  
+  # Add features/observations data
+  table[["p"]] = get_task_metadata(table$task_id)$ncol
+  table[["n"]] = get_task_metadata(table$task_id)$nrow
+  
+  return(table)
+}
