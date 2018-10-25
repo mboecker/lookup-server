@@ -93,7 +93,7 @@ is_parameter_list_ok = function(algo_name, params) {
 #' @param task_id The task of interest
 #'
 #' @return nrow and ncol of the dataset.
-get_task_metadata = function(task_id) {
+get_task_metadata = Vectorize(function(task_id) {
   # Find row in task_metadata
   row = task_metadata[task_metadata$task_id == task_id, ]
 
@@ -104,12 +104,11 @@ get_task_metadata = function(task_id) {
   # Extract data
   nrow = as.numeric(row$instances)
   ncol = as.numeric(row$features) - 1
+  baseline = as.numeric(row$baseline)
   
   # Return data
-  return(list(nrow = nrow, ncol = ncol))
-}
-
-get_cached_task_metadata = memoise(get_task_metadata, ~timeout(cache.timeout))
+  return(list(nrow = nrow, ncol = ncol, baseline = baseline))
+})
 
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
@@ -229,9 +228,16 @@ get_overview_table = function() {
   # Merge list of results into table.
   table = Reduce(function(x,y) merge(x,y, all=T), table, table[[1]])
   
+  # Any 0 at this point is due to no entry under a task_id for some learner.
+  # Therefore, there were 0 runs of that algo + task.
+  table[is.na(table)] = 0
+  
   # Add features/observations data
-  table[["p"]] = get_task_metadata(table$task_id)$ncol
-  table[["n"]] = get_task_metadata(table$task_id)$nrow
+  table[["p"]] = get_task_metadata(table$task_id)["ncol",]
+  table[["n"]] = get_task_metadata(table$task_id)["nrow",]
+  
+  # Baseline performance is the performance of a naive classificator.
+  table[["baseline"]] = get_task_metadata(table$task_id)["baseline",]
   
   return(table)
 }
