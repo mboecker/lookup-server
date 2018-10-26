@@ -4,7 +4,14 @@
 \alias{getAvailableTasks}
 \title{Returns the task ids, which are saved in the database and can be queried.}
 \usage{
-getAvailableTasks()
+getAvailableTasks(restrict = FALSE)
+}
+\arguments{
+\item{restrict}{\link{logical}
+Restrict the tasks to those that appear in the following paper:
+Automatic Exploration of Machine Learning Experiments on OpenML
+Daniel K¨uhn, Philipp Probst, Janek Thomas, Bernd Bischl
+https://arxiv.org/pdf/1806.10961.pdf}
 }
 \value{
 A vector of task ids.
