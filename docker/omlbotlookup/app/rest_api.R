@@ -96,8 +96,16 @@ rest_params = function(algo = NULL) {
 
 # List all possible tasks.
 #' @get /tasks
-rest_tasks = function() {
+#' @param restrict [logical(1)] Restrict output to tasks in paper
+rest_tasks = function(restrict = NULL) {
   all_task_ids = get_possible_task_ids()
+  if(isTRUE(restrict) || restrict == "TRUE" || restrict == 1) {
+    task_ids_paper = task_ids_paper()
+    all_task_ids = intersect(all_task_ids, task_ids_paper)
+    if (any(!task_ids_paper %in% all_task_ids)) {
+      return(json_error("Some tasks that are requested are not in the Database."))
+    }
+  }
   return(list(possible_task_ids = all_task_ids))
 }
 
