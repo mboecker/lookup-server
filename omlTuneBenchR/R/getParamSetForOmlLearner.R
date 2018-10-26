@@ -7,5 +7,11 @@
 #' @return [`ParamSet`]
 getParamSetForOmlLearner = function(learner.name) {
   assertChoice(learner.name, names(omlTuneBenchR$parameter_ranges))  
-  omlTuneBenchR$parameter_ranges[[learner.name]]
+  par.set = omlTuneBenchR$parameter_ranges[[learner.name]]
+  par.set$pars = lapply(par.set$pars, function(x) {
+      x$trafo = x$trafo.inverse = NULL
+      return(x)
+    }
+  )
+  return(par.set)
 }
