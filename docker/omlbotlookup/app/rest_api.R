@@ -97,7 +97,7 @@ rest_params = function(algo = NULL) {
 # List all possible tasks.
 #' @get /tasks
 #' @param restrict [logical(1)] Restrict output to tasks in paper
-rest_tasks = function(restrict = NULL) {
+rest_tasks = function(restrict = FALSE) {
   all_task_ids = get_possible_task_ids()
   if(isTRUE(restrict) || restrict == "TRUE" || restrict == 1) {
     task_ids_paper = task_ids_paper()
