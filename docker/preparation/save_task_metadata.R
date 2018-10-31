@@ -26,5 +26,13 @@ for (j in seq_len(ncol(result))) {
   }
 }
 
+# Automatic Exploration of Machine Learning Experiments on OpenML
+# Daniel Kühn, Philipp Probst, Janek Thomas, Bernd Bischl
+# https://arxiv.org/pdf/1806.10961.pdf
+# table 3
+paper_data_ids  = c(3, 31, 37, 44, 50, 151, 312, 333, 334, 335, 1036, 1038, 1043, 1046, 1049, 1050, 1063, 1067, 1068, 1120, 1461, 1462, 1464, 1467, 1471, 1479, 1480, 1485, 1486, 1487, 1489, 1494, 1504, 1510, 1570, 4134, 4534)
+
+result$data_in_paper = result$data %in% paper_data_ids
+
 # Save to file
 saveRDS(result, file = "../omlbotlookup/app/task_metadata.Rds")
