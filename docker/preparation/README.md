@@ -1,9 +1,12 @@
 # How-To
 
-* Prepare full OpenML database in MySQL, the database name should be "openml"
-* Run `./reduce.sh`
-* This will create a reduced.sql.gz, which is the only data the container needs.
-* Import this into the container.
+* Have a local mysql db running with a passwordless root
+  * Changing this would have to be done in various files in this directory.
+* Run `./preparation.sh`
+  * Downloads nightly OML database snapshot
+  * Loads snapshot into local MySQL DB
+  * Outputs reduced SQL DB Dump to `../omlbotlookup/mysqldata/reduced.sql.gz`
+  * Outputs additional Metadata into `../omlbotlookup/app/*.Rds` files
 
 # Debugging Version of the data: Task 3
 

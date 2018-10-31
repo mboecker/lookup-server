@@ -77,4 +77,7 @@ Rscript select_task_algo_combinations.R
 
 # 8. Dump final reformatted database file
 echo "Done preparing. Exporting compressed data to reduced.sql.gz"
-$mysqldump_command openml_reformatted | gzip > reduced.sql.gz
+$mysqldump_command openml_reformatted | gzip > ../mysqldata/reduced.sql.gz
+
+# 9. Save Task Metadata
+Rscript save_task_metadata.R

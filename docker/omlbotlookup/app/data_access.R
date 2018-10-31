@@ -90,25 +90,20 @@ is_parameter_list_ok = function(algo_name, params) {
 
 #' Retrieves metadata about the task from openml.org
 #'
-#' @param task_id The task of interest
+#' @param task_id [numeric(n)] The task of interest
 #'
 #' @return nrow and ncol of the dataset.
-get_task_metadata = Vectorize(function(task_id) {
+get_task_metadata = function(task_id) {
   # Find row in task_metadata
-  row = task_metadata[task_metadata$task_id == task_id, ]
+  row = task_metadata[task_metadata$task_id %in% task_id, ]
 
-  if (nrow(row) != 1) {
-    stop(sprintf("The task metadata for task %i has %i results!", task_id, nrow(row)))
+  if (nrow(row) != length(task_id)) {
+    stop(sprintf("The task metadata for task %s has %i results!", paste(task_id, collapse = ","), nrow(row)))
   }
-  
-  # Extract data
-  nrow = as.numeric(row$instances)
-  ncol = as.numeric(row$features) - 1
-  baseline = as.numeric(row$baseline)
-  
+
   # Return data
-  return(list(nrow = nrow, ncol = ncol, baseline = baseline))
-})
+  return(list(nrow = row$instances, ncol = row$features - 1))
+}
 
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
@@ -219,25 +214,20 @@ get_algos = function() {
 #' @return [data.frame] 
 get_overview_table = function() {
   # Select number of runs with given algo and every task from database.
-  table = lapply(get_algos(), function(algo_id) {
+  tables = lapply(get_algos(), function(algo_id) {
     sql.exp = sprintf("SELECT task_id, COUNT(*) as `n_%s_runs` FROM `%s` GROUP BY task_id;", substring(algo_id, 9), algo_id)
     result = dbGetQuery(con, sql.exp)
     result
   })
   
   # Merge list of results into table.
-  table = Reduce(function(x,y) merge(x,y, all=T), table, table[[1]])
+  table = Reduce(merge, tables)
   
   # Any 0 at this point is due to no entry under a task_id for some learner.
   # Therefore, there were 0 runs of that algo + task.
   table[is.na(table)] = 0
-  
-  # Add features/observations data
-  table[["p"]] = get_task_metadata(table$task_id)["ncol",]
-  table[["n"]] = get_task_metadata(table$task_id)["nrow",]
-  
-  # Baseline performance is the performance of a naive classificator.
-  table[["baseline"]] = get_task_metadata(table$task_id)["baseline",]
+
+  merge(table, task_metadata, all.x = TRUE)
   
   return(table)
 }

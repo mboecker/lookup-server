@@ -28,8 +28,7 @@ startOmlTuneServer = function() {
         stop(sprintf("Could not run new container! Last output: %s", out$output))
       }
       
-      # FIXME: Change this to import-full-data.sh
-      out = callShScript("import-task3-data.sh")
+      out = callShScript("import-full-data.sh")
       if (!out$success) {
         stop(sprintf("Could not import data! Last output: %s", out$output))
       }
