@@ -227,7 +227,7 @@ get_overview_table = function() {
   # Therefore, there were 0 runs of that algo + task.
   table[is.na(table)] = 0
 
-  merge(table, task_metadata, all.x = TRUE)
+  res = merge(table, task_metadata, all.x = TRUE)
   
-  return(table)
+  return(res)
 }
