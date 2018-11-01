@@ -53,7 +53,7 @@ tables = lapply(get_algos(), function(algo_id) {
 })
 
 # Merge list of results into table.
-table = Reduce(merge, tables)
+table = Reduce(function(x,y) merge(x,y,all=T), tables)
 
 # Any 0 at this point is due to no entry under a task_id for some learner.
 # Therefore, there were 0 runs of that algo + task.
