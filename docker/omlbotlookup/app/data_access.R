@@ -213,21 +213,5 @@ get_algos = function() {
 #' 
 #' @return [data.frame] 
 get_overview_table = function() {
-  # Select number of runs with given algo and every task from database.
-  tables = lapply(get_algos(), function(algo_id) {
-    sql.exp = sprintf("SELECT task_id, COUNT(*) as `n_%s_runs` FROM `%s` GROUP BY task_id;", substring(algo_id, 9), algo_id)
-    result = dbGetQuery(con, sql.exp)
-    result
-  })
-  
-  # Merge list of results into table.
-  table = Reduce(merge, tables)
-  
-  # Any 0 at this point is due to no entry under a task_id for some learner.
-  # Therefore, there were 0 runs of that algo + task.
-  table[is.na(table)] = 0
-
-  res = merge(table, task_metadata, all.x = TRUE)
-  
-  return(res)
+  return(task_metadata)
 }
