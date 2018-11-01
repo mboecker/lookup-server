@@ -1,0 +1,1 @@
+../../docker/import-full-data.sh

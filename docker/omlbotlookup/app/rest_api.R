@@ -148,3 +148,9 @@ rest_csv = function(task = NULL, algo = NULL) {
   write.csv(complete_table, file = tfile)
   readBin(tfile, "raw", n=file.info(tfile)$size)
 }
+
+#' List an overview of the data in the database.
+#' @get /overview
+rest_overview = function() {
+  get_overview_table()
+}

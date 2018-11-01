@@ -90,26 +90,20 @@ is_parameter_list_ok = function(algo_name, params) {
 
 #' Retrieves metadata about the task from openml.org
 #'
-#' @param task_id The task of interest
+#' @param task_id [numeric(n)] The task of interest
 #'
 #' @return nrow and ncol of the dataset.
 get_task_metadata = function(task_id) {
   # Find row in task_metadata
-  row = task_metadata[task_metadata$task_id == task_id, ]
+  row = task_metadata[task_metadata$task_id %in% task_id, ]
 
-  if (nrow(row) != 1) {
-    stop(sprintf("The task metadata for task %i has %i results!", task_id, nrow(row)))
+  if (nrow(row) != length(task_id)) {
+    stop(sprintf("The task metadata for task %s has %i results!", paste(task_id, collapse = ","), nrow(row)))
   }
-  
-  # Extract data
-  nrow = as.numeric(row$instances)
-  ncol = as.numeric(row$features) - 1
-  
-  # Return data
-  return(list(nrow = nrow, ncol = ncol))
-}
 
-get_cached_task_metadata = memoise(get_task_metadata, ~timeout(cache.timeout))
+  # Return data
+  return(list(nrow = row$instances, ncol = row$features - 1))
+}
 
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
@@ -169,7 +163,7 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
     # Transform data.independet params that are not defined like in the data base to data.dependent  
     data.trafo = parameter_ranges[[algo_id]]$pars[[parameter_name]]$data.trafo
     if (!is.null(data.trafo)) {
-      dict = get_cached_task_metadata(task_id)
+      dict = get_task_metadata(task_id)
       parameters_trafo[[parameter_name]] = data.trafo(dict = dict, par = parameters_trafo)
     }
     
@@ -213,4 +207,11 @@ get_algos = function() {
   sql.exp = "SHOW TABLES"
   r = dbGetQuery(con, sql.exp)
   r[[1]]
+}
+
+#' Returns a table containing important information on the tasks availiable in the database.
+#' 
+#' @return [data.frame] 
+get_overview_table = function() {
+  return(task_metadata)
 }
