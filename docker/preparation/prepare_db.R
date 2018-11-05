@@ -221,26 +221,27 @@ cleanupOldTables = function() {
   }
 }
 
-# cleanupOldTables();
-# 
-# task_ids = possibleTaskIDs()
-# algo_ids = possibleAlgoIDs()
-# task_count = length(task_ids)
-# algo_count = length(algo_ids)
+cleanupOldTables();
 
-# for(i in seq_along(task_ids)) {
-#   for(j in seq_along(algo_ids)) {
-#     ij = (i-1) * algo_count + j
-#     task_id = task_ids[i]
-#     algo_id = algo_ids[j]
-#     cat(sprintf("(Progress: %d / %d - %.0f%%) Importing Task %d (%d / %d) + Algorithm %s (%d / %d):\t",
-#                     ij, algo_count*task_count, (100*ij / (algo_count*task_count)),task_id, i, task_count, algo_id, j, algo_count))
-#     updateDatabase(task_ids[i], algo_ids[j])
-#   }
-# }
+task_ids = possibleTaskIDs()
+algo_ids = possibleAlgoIDs()
+task_count = length(task_ids)
+algo_count = length(algo_ids)
 
-algo_id = "classif.ranger"
-
-for (task_id in possibleTaskIDs()) {
-  updateDatabase(task_id, algo_id)
+for(i in seq_along(task_ids)) {
+  for(j in seq_along(algo_ids)) {
+    ij = (i-1) * algo_count + j
+    task_id = task_ids[i]
+    algo_id = algo_ids[j]
+    cat(sprintf("(Progress: %d / %d - %.0f%%) Importing Task %d (%d / %d) + Algorithm %s (%d / %d):\t",
+                    ij, algo_count*task_count, (100*ij / (algo_count*task_count)),task_id, i, task_count, algo_id, j, algo_count))
+    updateDatabase(task_ids[i], algo_ids[j])
+  }
 }
+
+
+# algo_id = "classif.ranger"
+
+# for (task_id in possibleTaskIDs()) {
+#   updateDatabase(task_id, algo_id)
+# }

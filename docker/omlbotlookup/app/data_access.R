@@ -77,13 +77,11 @@ is_parameter_list_ok = function(algo_name, params) {
   assertChoice(algo_name, names(parameter_ranges))
   par_set = parameter_ranges[[algo_name]]
   
-  res = tryCatch(isFeasible(par_set, params), error = function(e) e)
-  if (inherits(res, c("try-error", "error"))) {
-    as.character(res)
-  } else if (!isTRUE(res)) {
-    attr(res, "warning")
+  res = tryCatch(isFeasible(par_set, params), error = as.character)
+  if (!isTRUE(res)) {
+    return(attr(res, "warning"))
   } else {
-    TRUE
+    return(TRUE)
   }
 }
 
@@ -215,3 +213,4 @@ get_algos = function() {
 get_overview_table = function() {
   return(task_metadata)
 }
+

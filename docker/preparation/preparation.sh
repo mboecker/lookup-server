@@ -1,5 +1,15 @@
 #!/bin/bash
 
+task3=false
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -t | --task3 )  task3=true
+                        ;;
+    esac
+    shift
+done
+
 # This skript
 # 1. checks if a local snapshot exists
 # 2. if not it checks if the snapshot file exists in current dir
@@ -58,9 +68,18 @@ fi
 
 # 5. Write only usable data from `$database` into `openml_exporting`
 # TODO: only do this if database `openml_exporting` not found.
-echo "Preparing database for exporting"
+echo "Preparing database for exporting."
+echo "  Shrinking..."
 $mysql_command $database < sql/shrink_db.sql
-$mysql_command $database < sql/select_runs.sql		# Note: to use only task 3, use "select_runs_task3" here instead of "select_runs".
+
+echo "  Selecting..."
+if [ "$task3" == "true" ]; then
+  $mysql_command $database < sql/select_runs_task3.sql
+else
+  $mysql_command $database < sql/select_runs.sql
+fi
+
+echo "  Inserting..."
 $mysql_command $database < sql/insert_run_data.sql
 
 # 6.
@@ -72,12 +91,13 @@ $mysql_command -e "DROP DATABASE IF EXISTS openml_reformatted; CREATE DATABASE o
 echo "Reformat db..."
 Rscript prepare_db.R
 
-echo "Prepare availiable tasks..."
-Rscript select_task_algo_combinations.R
-
 # 8. Dump final reformatted database file
 echo "Done preparing. Exporting compressed data to reduced.sql.gz"
-$mysqldump_command openml_reformatted | gzip > ../mysqldata/reduced.sql.gz
+if [ "$task3" == "true" ]; then
+  $mysqldump_command openml_reformatted | gzip > ../mysqldata/reduced_task3.sql.gz
+else
+  $mysqldump_command openml_reformatted | gzip > ../mysqldata/reduced.sql.gz
+fi
 
 # 9. Save Task Metadata
 Rscript save_task_metadata.R

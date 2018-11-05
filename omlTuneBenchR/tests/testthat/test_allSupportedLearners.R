@@ -4,9 +4,7 @@ r = startOmlTuneServer()
 expect_true(r)
 
 task_id = 3
-learners = c("classif.kknn", "classif.glmnet", "classif.rpart", "classif.svm", "classif.xgboost") #, "classif.ranger"
-
-#availiable_tasks = readRDS("../availiable_tasks.Rds")
+learners = c("classif.kknn", "classif.glmnet", "classif.rpart", "classif.svm", "classif.xgboost", "classif.ranger")
 
 for (learner in learners) {
   test_that(learner, {
