@@ -1,4 +1,3 @@
-library("RMySQL")
 library("data.table")
 library("ParamHelpers")
 
@@ -6,11 +5,10 @@ library("ParamHelpers")
 mysql_username = "root"
 mysql_password = ""
 mysql_dbname_from = "openml_exporting"
-mysql_dbname_to = "openml_reformatted"
 mysql_host = "127.0.0.1"
 
 # Open database connection
-con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname_to, host = mysql_host)
+con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname_from, host = mysql_host)
 parameter_ranges = readRDS("../omlbotlookup/app/parameter_ranges.Rds")
 
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
@@ -163,19 +161,17 @@ insertIntoDB = function(task_id, algo_id, t) {
     
     dbExecute(con, sql.exp)
     
-    t[,"task_id"] = task_id
-    
     # Replace invalid default values with NA
     if(algo_id == "classif.svm") {
       t[t$kernel != "polynomial"]$degree = NA
     }
     
-    writeRows(algo_id, t)
+    writeRows(algo_id, task_id, t)
   }
 }
 
-writeRows = function(algo_id, xt) {
-  dbWriteTable(con, algo_id, xt, append = T, row.names = F)
+writeRows = function(algo_id, task_id, xt) {
+  saveRDS(xt, paste0("../omlbotlookup/app/rdsdata/data_",algo_id,"_",task_id,".rds"))
 }
 
 updateDatabase = function(task_id, algo_id) {

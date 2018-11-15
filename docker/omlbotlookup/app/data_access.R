@@ -163,7 +163,7 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   # find nearest neighbours
   res = get_nearest_neighbour(table_trafo_scaled, parameters_trafo_scaled, numeric_params)
 
-  res = merge(res[, c("task_id", "rid", "setup", "distance"), with = FALSE], table, all.x = TRUE, all.y = FALSE, sort = FALSE)
+  #res = merge(res[, c("task_id", "rid", "setup", "distance"), with = FALSE], table, all.x = TRUE, all.y = FALSE, sort = FALSE)
 
   return(res)
 }
