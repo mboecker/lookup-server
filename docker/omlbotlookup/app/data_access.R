@@ -91,7 +91,7 @@ get_task_metadata = function(task_id) {
 #'
 #' @return A dataframe containing: A column "setup", with the setup_id. A column "<parameter_name>" for every parameter. And one row of data for every setup, that has been run with one of the given algorithms, containing the parameter_data of that run.
 get_table = function(algo_id, task_id) {
-  readRDS(file = paste0("data/data_", algo_id, "_", task_id, ".rds"))
+  readRDS(file = paste0("rdsdata/data_", algo_id, "_", task_id, ".rds"))
 }
 
 
