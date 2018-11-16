@@ -86,18 +86,9 @@ $mysql_command $database < sql/insert_run_data.sql
 echo "Prepare Parameter Ranges..."
 Rscript prepare_parameter_ranges.R	
 
-# 7. Read data from `openml_exporting`, re-format it in R and write it to `openml_reformatted`
-$mysql_command -e "DROP DATABASE IF EXISTS openml_reformatted; CREATE DATABASE openml_reformatted;"
-echo "Reformat db..."
+# 7. Read data from `openml_exporting`, re-format it in R and write it to rds files
+echo "Save everything into Rds files..."
 Rscript prepare_db.R
-
-# 8. Dump final reformatted database file
-echo "Done preparing. Exporting compressed data to reduced.sql.gz"
-if [ "$task3" == "true" ]; then
-  $mysqldump_command openml_reformatted | gzip > ../mysqldata/reduced_task3.sql.gz
-else
-  $mysqldump_command openml_reformatted | gzip > ../mysqldata/reduced.sql.gz
-fi
 
 # 9. Save Task Metadata
 Rscript save_task_metadata.R

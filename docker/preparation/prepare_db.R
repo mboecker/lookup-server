@@ -116,65 +116,7 @@ replace_na_with_defaults = function(table, algo_name, parameter_names) {
   return(table)
 }
 
-insertIntoDB = function(task_id, algo_id, t) {
-  if(nrow(t) > 0) {
-    parameters = "task_id INTEGER UNSIGNED"
-    parameters = c(parameters, lapply(names(t), function(parameter_name) {
-      class_of_parameter = class(simplify2array(t[1, ..parameter_name]))
-      mysql_type = class_of_parameter
-      if(parameter_name == "respect.unordered.factors") {
-        class_of_parameter = "logical"
-      }
-      if(class_of_parameter == "factor") {
-        mysql_type = "VARCHAR(255)"
-      }
-      if(class_of_parameter == "character") {
-        mysql_type = "VARCHAR(255)"
-      }
-      if(class_of_parameter == "logical") {
-        col = c(sapply(sapply(t[, ..parameter_name], as.logical), as.numeric))
-        t[, (parameter_name) := col]
-        mysql_type = "BOOL"
-      }
-      if(class_of_parameter == "numeric") {
-        mysql_type = "FLOAT"
-      }
-      if(parameter_name == "setup") {
-        mysql_type = "INTEGER UNSIGNED"
-      }
-      if(parameter_name == "rid") {
-        mysql_type = "INTEGER UNSIGNED"
-      }
-      return(sprintf("`%s` %s", parameter_name, mysql_type))
-    }))
-    parameters = paste0(parameters, collapse = ", ")
-    
-    keys = sapply(names(t), function(key_name) {
-      sprintf("KEY (`%s`)", key_name)
-    })
-    
-    keys = paste0(keys, collapse=", ")
-    
-    sql.exp = sprintf("CREATE TABLE IF NOT EXISTS %s.`%s` (%s, %s);", mysql_dbname_to, algo_id, parameters, keys)
-    
-    # cat(sprintf("Table DESC: %s\n", sql.exp))
-    
-    dbExecute(con, sql.exp)
-    
-    # Replace invalid default values with NA
-    if(algo_id == "classif.svm") {
-      t[t$kernel != "polynomial"]$degree = NA
-    }
-    
-    writeRows(algo_id, task_id, t)
-  }
-}
-
-writeRows = function(algo_id, task_id, xt) {
-  saveRDS(xt, paste0("../omlbotlookup/app/rdsdata/data_",algo_id,"_",task_id,".rds"))
-}
-
-updateDatabase = function(task_id, algo_id) {
+saveTableFile = function(task_id, algo_id) {
   t = getTableFromDB(task_id, algo_id)
   setDT(t)
   
@@ -198,7 +140,13 @@ updateDatabase = function(task_id, algo_id) {
     t = t[t[,setup >= MIN_SETUP],]
   }
   
-  insertIntoDB(task_id, algo_id, t)
+  # Replace invalid default values with NA
+  if(algo_id == "classif.svm") {
+    t[t$kernel != "polynomial"]$degree = NA
+  }
+
+  # write table into a single properly named RDS File
+  saveRDS(t, paste0("../omlbotlookup/app/rdsdata/data_",algo_id,"_",task_id,".rds"))
 }
 
 possibleTaskIDs = function() {
@@ -231,13 +179,6 @@ for(i in seq_along(task_ids)) {
     algo_id = algo_ids[j]
     cat(sprintf("(Progress: %d / %d - %.0f%%) Importing Task %d (%d / %d) + Algorithm %s (%d / %d):\t",
                     ij, algo_count*task_count, (100*ij / (algo_count*task_count)),task_id, i, task_count, algo_id, j, algo_count))
-    updateDatabase(task_ids[i], algo_ids[j])
+    saveTableFile(task_ids[i], algo_ids[j])
   }
 }
-
-
-# algo_id = "classif.ranger"
-
-# for (task_id in possibleTaskIDs()) {
-#   updateDatabase(task_id, algo_id)
-# }
