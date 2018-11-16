@@ -147,7 +147,9 @@ saveTableFile = function(task_id, algo_id) {
   }
 
   # write table into a single properly named RDS File
-  saveRDS(t, paste0("../omlbotlookup/app/rdsdata/data_",algo_id,"_",task_id,".rds"))
+  path = paste0("../omlbotlookup/app/rdsdata/data_",algo_id,"_",task_id,".rds")
+  dir.create(dirname(path), showWarnings = FALSE)
+  saveRDS(t, path)
 }
 
 possibleTaskIDs = function() {

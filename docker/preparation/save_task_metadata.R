@@ -15,9 +15,12 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 #'
 #' @return A named list, containing one entry for each different algorithm name, and the algorithm ids for each algorithm name.
 get_algos = function() {
-  sql.exp = "SHOW TABLES IN openml_reformatted"
-  r = dbGetQuery(con, sql.exp)
-  r[[1]]
+  #FIXME Maybe A bit Ugly?
+  path = "../omlbotlookup/app/rdsdata/"
+  files = dir(path, all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE)
+  files = gsub(pattern = "data_", replacement = "", x = files)
+  files = gsub(pattern = "_[0-9]+\\.rds", replacement = "", x = files)
+  return(files)
 }
 
 # Get raw data in wrong format
