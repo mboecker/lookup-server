@@ -1,5 +1,6 @@
 library("data.table")
 library("ParamHelpers")
+library("RMySQL")
 
 # Declare database credentials
 mysql_username = "root"
@@ -157,15 +158,6 @@ possibleTaskIDs = function() {
 possibleAlgoIDs = function() {
   return(names(parameter_ranges))
 }
-
-cleanupOldTables = function() {
-  for(algo_id in possibleAlgoIDs()) {
-    sql.exp = sprintf("DROP TABLE IF EXISTS %s.`%s`;", mysql_dbname_to, algo_id)
-    dbExecute(con, sql.exp)
-  }
-}
-
-cleanupOldTables();
 
 task_ids = possibleTaskIDs()
 algo_ids = possibleAlgoIDs()

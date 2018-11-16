@@ -67,20 +67,24 @@ else
 fi
 
 # 5. Write only usable data from `$database` into `openml_exporting`
-# TODO: only do this if database `openml_exporting` not found.
-echo "Preparing database for exporting."
-echo "  Shrinking..."
-$mysql_command $database < sql/shrink_db.sql
-
-echo "  Selecting..."
-if [ "$task3" == "true" ]; then
-  $mysql_command $database < sql/select_runs_task3.sql
+RESULT=`$mysql_command -e "SHOW DATABASES" | grep openml_exporting`
+if [ "$RESULT" == "openml_exporting" ]; then
+  echo "Export Ready DB already exists. Skip Shrinking."
 else
-  $mysql_command $database < sql/select_runs.sql
-fi
+  echo "Preparing database for exporting."
+  echo "  Shrinking..."
+  $mysql_command $database < sql/shrink_db.sql
 
-echo "  Inserting..."
-$mysql_command $database < sql/insert_run_data.sql
+  echo "  Selecting..."
+  if [ "$task3" == "true" ]; then
+    $mysql_command $database < sql/select_runs_task3.sql
+  else
+    $mysql_command $database < sql/select_runs.sql
+  fi
+
+  echo "  Inserting..."
+  $mysql_command $database < sql/insert_run_data.sql
+fi
 
 # 6.
 echo "Prepare Parameter Ranges..."
