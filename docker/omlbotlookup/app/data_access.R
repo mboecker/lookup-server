@@ -74,7 +74,8 @@ is_parameter_list_ok = function(algo_name, params) {
 #' @return nrow and ncol of the dataset.
 get_task_metadata = function(task_id) {
   # Find row in task_metadata
-  row = task_metadata[task_metadata$task_id %in% task_id, ]
+  this_task_id = task_id
+  row = task_metadata[task_id %in% this_task_id, ]
 
   if (nrow(row) != length(task_id)) {
     stop(sprintf("The task metadata for task %s has %i results!", paste(task_id, collapse = ","), nrow(row)))
