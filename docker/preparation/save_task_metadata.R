@@ -1,4 +1,5 @@
 library("RMySQL")
+library("data.table")
 
 # Declare database credentials
 mysql_username = "root"

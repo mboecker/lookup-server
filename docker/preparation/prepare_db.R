@@ -118,39 +118,46 @@ replace_na_with_defaults = function(table, algo_name, parameter_names) {
 }
 
 saveTableFile = function(task_id, algo_id) {
-  t = getTableFromDB(task_id, algo_id)
-  setDT(t)
-  
-  t = replace_na_with_defaults(t, algo_id, names(t))
 
-  if("gamma" %in% names(t)) {
-    cc = complete.cases(t[,-"gamma"])
-  } else {
-    cc = complete.cases(t)
-  }
-  
-  cat(sprintf("Removing %.1f%% (%d/%d) of runs.\r\n", (sum(!cc) * 100.0 / dim(t)[1]), sum(!cc), dim(t)[1]))
-  
-  #if(algo_id == "classif.ranger") {
-  #  cat(sprintf("Ranger: Ratio of 'min.node.size is NA' / all runs: %.1f%%\r\n", 100 * sum(is.na(t$min.node.size)) / dim(t)[1]))
-  #}
-  
-  t = t[cc,]
-  
-  if(algo_id == "classif.ranger") {
-    MIN_SETUP = 5991158 # Runs before this are reference runs, remove them.
-    t = t[t[,setup >= MIN_SETUP],]
-  }
-  
-  # Replace invalid default values with NA
-  if(algo_id == "classif.svm") {
-    t[t$kernel != "polynomial"]$degree = NA
-  }
-
-  # write table into a single properly named RDS File
   path = paste0("../omlbotlookup/app/rdsdata/data_",algo_id,"_",task_id,".rds")
-  dir.create(dirname(path), showWarnings = FALSE)
-  saveRDS(t, path)
+
+  if (file.exists(path)) {
+    cat("Skipping because file already exists.\r\n")
+  } else {
+    t = getTableFromDB(task_id, algo_id)
+    setDT(t)
+    
+    t = replace_na_with_defaults(t, algo_id, names(t))
+
+    if("gamma" %in% names(t)) {
+      cc = complete.cases(t[,-"gamma"])
+    } else {
+      cc = complete.cases(t)
+    }
+    
+    cat(sprintf("Removing %.1f%% (%d/%d) of runs.\r\n", (sum(!cc) * 100.0 / dim(t)[1]), sum(!cc), dim(t)[1]))
+    
+    #if(algo_id == "classif.ranger") {
+    #  cat(sprintf("Ranger: Ratio of 'min.node.size is NA' / all runs: %.1f%%\r\n", 100 * sum(is.na(t$min.node.size)) / dim(t)[1]))
+    #}
+    
+    t = t[cc,]
+    
+    if(algo_id == "classif.ranger") {
+      MIN_SETUP = 5991158 # Runs before this are reference runs, remove them.
+      t = t[t[,setup >= MIN_SETUP],]
+    }
+    
+    # Replace invalid default values with NA
+    if(algo_id == "classif.svm") {
+      t[t$kernel != "polynomial"]$degree = NA
+    }
+
+    # write table into a single properly named RDS File
+    path = paste0("../omlbotlookup/app/rdsdata/data_",algo_id,"_",task_id,".rds")
+    dir.create(dirname(path), showWarnings = FALSE)
+    saveRDS(t, path)
+  }
 }
 
 possibleTaskIDs = function() {

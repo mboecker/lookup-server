@@ -95,4 +95,5 @@ echo "Save everything into Rds files..."
 Rscript prepare_db.R
 
 # 9. Save Task Metadata
+echo "Save task metadata..."
 Rscript save_task_metadata.R
