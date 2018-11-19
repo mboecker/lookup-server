@@ -5,6 +5,7 @@ mysql_username = "root"
 mysql_password = ""
 mysql_dbname_from = "openml_native"
 mysql_host = "127.0.0.1"
+rds_path = "../omlbotlookup/app/rdsdata/"
 
 # Open database connection
 con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname_from, host = mysql_host)
@@ -16,11 +17,10 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 #' @return A named list, containing one entry for each different algorithm name, and the algorithm ids for each algorithm name.
 get_algos = function() {
   #FIXME Maybe A bit Ugly?
-  path = "../omlbotlookup/app/rdsdata/"
-  files = dir(path, all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE)
+  files = dir(rds_path, all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE)
   files = gsub(pattern = "data_", replacement = "", x = files)
   files = gsub(pattern = "_[0-9]+\\.rds", replacement = "", x = files)
-  return(files)
+  return(unique(files))
 }
 
 # Get raw data in wrong format
@@ -50,17 +50,16 @@ result$data_in_paper = result$data %in% paper_data_ids
 
 # Select number of runs with given algo and every task from database.
 tables = lapply(get_algos(), function(algo_id) {
-  sql.exp = sprintf("SELECT task_id, COUNT(*) as `n_%s_runs` FROM openml_reformatted.`%s` GROUP BY task_id;", substring(algo_id, 9), algo_id)
-  result = dbGetQuery(con, sql.exp)
-  result
+  files = dir(rds_path, all.files = TRUE, pattern = paste0("data_", algo_id, "_[0-9]+\\.rds"), include.dirs = FALSE)
+  lapply(files, function(file) {
+    table = readRDS(file.path(rds_path, file))
+    n = nrow(table)
+    task_id = as.numeric(regmatches(file, regexpr("[0-9]+", file)))
+    data.frame(algo_id = algo_id, task_id = task_id, n = n)
+  })
 })
-
-# Merge list of results into table.
-table = Reduce(function(x,y) merge(x,y,all=T), tables)
-
-# Any 0 at this point is due to no entry under a task_id for some learner.
-# Therefore, there were 0 runs of that algo + task.
-table[is.na(table)] = 0
+table = rbindlist(unlist(tables, recursive=FALSE))
+table = tidyr::spread(table, key = "algo_id", value = "n")
 
 result = merge(table, result, all.x = TRUE)
 
