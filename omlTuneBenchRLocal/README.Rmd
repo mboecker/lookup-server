@@ -1,0 +1,20 @@
+---
+output: github_document
+---
+# omlTuneBench
+
+```{r, setup, include=FALSE}
+set.seed(123)
+knitr::opts_chunk$set(cache = TRUE, collapse = FALSE, warning = FALSE, error = FALSE)
+library(omlTuneBench)
+```
+## Installation
+```{r, eval=FALSE}
+devtools::install_github("mboecker/lookup-server/omlTuneBenchR")
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+library(omlTuneBench)
+# example goes here
+```
