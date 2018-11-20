@@ -2,10 +2,6 @@
 #'
 #' @return A vector of algo ids.
 #' @export
-getAvailableAlgos = function(local = FALSE) {
-  if (local) {
-
-  } else {
-
-  }
+get_available_algos = function() {
+  colnames(task_metadata)[grep("^classif", colnames(task_metadata))]
 }

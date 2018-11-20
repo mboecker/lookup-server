@@ -7,10 +7,10 @@
 #'   Daniel K¨uhn, Philipp Probst, Janek Thomas, Bernd Bischl
 #'   https://arxiv.org/pdf/1806.10961.pdf
 #' @export
-getAvailableTasks = function(local = FALSE, restrict = FALSE) {
-  if (local) {
-
+get_available_tasks = function(restrict = FALSE) {
+  if (restrict) {
+    unique(task_metadata[get("data_in_paper") == TRUE,]$task_id)
   } else {
-
+    unique(task_metadata$task_id)
   }
 }

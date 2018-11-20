@@ -11,11 +11,13 @@ Encoding: UTF-8
 Roxygen: list(wrap = FALSE, markdown = TRUE)
 LazyData: true
 Imports:
-    fs
+    fs,
+    purrr
 Depends:
     smoof,
     ParamHelpers,
-    checkmate
+    checkmate,
+    data.table
 Suggests:
     testthat,
     knitr

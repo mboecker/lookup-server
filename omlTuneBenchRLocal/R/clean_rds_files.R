@@ -3,7 +3,7 @@
 #' @return `logical(1)`
 #' @export
 
-cleanRDSFiles = function() {
+clean_rds_files = function() {
   if (!fs::dir_exists(omlTuneBenchR$rdspath)) {
     stop(sprintf("Directory %s does not exist!", omlTuneBenchR$rdspath))
   } else {

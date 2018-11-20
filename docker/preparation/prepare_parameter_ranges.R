@@ -57,4 +57,4 @@ parameters = function() {
 parameter_ranges = parameters()
 
 # Store them in a file, which will be baked into the docker image.
-saveRDS(parameter_ranges, file = "../omlbotlookup/app/parameter_ranges.Rds")
+saveRDS(parameter_ranges, file = "../omlbotlookup/app/parameter_ranges.rds")

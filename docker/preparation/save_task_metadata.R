@@ -15,7 +15,7 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 #'
 #' @param task_id This is `task_id` from the table `run` in the database.
 #'
-#' @return A named list, containing one entry for each different algorithm name, and the algorithm ids for each algorithm name.
+#' @return A named list, containing one enftry for each different algorithm name, and the algorithm ids for each algorithm name.
 get_algos = function() {
   #FIXME Maybe A bit Ugly?
   files = dir(rds_path, all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE)
@@ -65,4 +65,11 @@ table = tidyr::spread(table, key = "algo_id", value = "n")
 result = merge(table, result, all.x = TRUE)
 
 # Save to file
-saveRDS(result, file = "../omlbotlookup/app/task_metadata.Rds")
+saveRDS(result, file = "../omlbotlookup/app/task_metadata.rds")
+
+# save for package
+rda.file = dir("../omlbotlookup/app/", all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE, full.names = TRUE)
+names = sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(rda.file))
+objects = setNames(lapply(rda.file, readRDS), names)
+do.call(save, c(as.list(names(objects)), list(file = "../../omlTuneBenchR/R/sysdata.rda", envir = as.environment(objects), compress = "bzip2")))
+do.call(save, c(as.list(names(objects)), list(file = "../../omlTuneBenchRLocal/R/sysdata.rda", envir = as.environment(objects), compress = "bzip2")))

@@ -10,10 +10,11 @@
 #'   The task_id (e.g. `3`)
 #' @return `data.frame`
 #' @export
-getAllRuns = function(learner_id, task_id) {
+get_runs = function(learner_id, task_id) {
   file = sprintf("rdsdata/data_%s_%i.rds", learner_id, task_id)
-  rdsfile = fs::path_join(omlTuneBenchR$rdspath, file)
+  rdsfile = fs::path_join(c(omlTuneBenchR$rdspath, file))
   if (!fs::file_exists(rdsfile)) {
+    fs::dir_create(fs::path_dir(rdsfile))
     url = sprintf("%s/%s", omlTuneBenchR$remote, file)
     download.file(url, destfile = rdsfile)
   }

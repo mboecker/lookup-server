@@ -13,16 +13,16 @@
 #' @return `function`
 #' @export
 
-makeOmlBenchFunction = function(learner_id, task_id, include.extras = FALSE, objective = "accuracy") {
+make_omlbenchfunction = function(learner_id, task_id, include.extras = FALSE, objective = "accuracy") {
   assertString(learner_id)
   assertInt(task_id)
   assertSubset(objective, c("auc", "accuracy", "rmse"))
 
-  par.set = getParamSetForOmlLearner(learner_id)
+  par.set = get_paramset_for_omllearner(learner_id)
   
   makeSingleObjectiveFunction(
     name = paste0("Task_", task_id, "_Learner_", learner_id),
-    fn = function(x) findNearestNeighbor(x, learner_id, task_id, include.extras, objective, par.set),
+    fn = function(x) objective_wrapper(x, learner_id, task_id, include.extras, objective, par.set),
     has.simple.signature = FALSE,
     vectorized = FALSE,
     par.set = par.set,
@@ -31,7 +31,7 @@ makeOmlBenchFunction = function(learner_id, task_id, include.extras = FALSE, obj
   )
 }
 
-findNearestNeighbor = function(x, learner_id, task_id, include.extras, objective, par.set) {
+objective_wrapper = function(x, learner_id, task_id, include.extras, objective, par.set) {
  
   if (include.extras) {
     extras = lapply(res, function(x) {
