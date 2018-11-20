@@ -2,7 +2,7 @@
 
 #' Retrieves metadata about the task from openml.org
 #'
-#' @param task_id [numeric(n)] The task of interest
+#' @param task_id `numeric(n)` The task of interest
 #'
 #' @return nrow and ncol of the dataset.
 get_task_metadata = function(task_id) {

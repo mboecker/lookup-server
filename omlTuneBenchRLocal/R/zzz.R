@@ -4,6 +4,7 @@
 #' @import data.table
 #' @importFrom stats setNames
 #' @importFrom utils download.file
+#' @importFrom utils object.size
 
 omlTuneBenchR = new.env()
 omlTuneBenchR$remote = "https://www.statistik.tu-dortmund.de/~richter/omltunebenchr"

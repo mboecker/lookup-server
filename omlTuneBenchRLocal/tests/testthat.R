@@ -1,4 +1,4 @@
 library(testthat)
-library(omlTuneBenchR)
+library(omlTuneBenchRLocal)
 
 test_check("omlTuneBenchR")

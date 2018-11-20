@@ -4,8 +4,6 @@
 #'   Defines the learner. (e.g. `"classif.rpart"`)
 #' @param task_id (`integer(1)`)
 #'   Defines the task_id the learner is optimized on.
-#' @param api.chunksize (`numeric(1)`)
-#'   If too many points are requested with one function call this can help to split the request into smaller chunks.
 #' @param include.extras (`logical(1)`)
 #'   Should the extras be attached as an attribute?
 #' @param objective (`character(1)`)

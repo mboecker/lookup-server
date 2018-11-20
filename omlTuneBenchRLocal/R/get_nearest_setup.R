@@ -4,7 +4,7 @@
 #' We will search the OpenML database for the evaluated parameter set, which has the minimal euclidean distance to our given parameters.
 #' We then return the performance of the found point.
 #'
-#' @param learner_ids A vector of algorithm ids, which will all be treated equally. It is required, that these all have the same name (and parameters).
+#' @param learner_id A vector of algorithm ids, which will all be treated equally. It is required, that these all have the same name (and parameters).
 #' @param task_id A task id, given in numeric form.
 #' @param parameters A data table of the form data.table(parA = c(valA1, valA2), parB = c(valB1, valB2))
 #'
