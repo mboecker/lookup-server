@@ -12,7 +12,8 @@ Roxygen: list(wrap = FALSE, markdown = TRUE)
 LazyData: true
 Imports:
     fs,
-    purrr
+    purrr,
+    FNN
 Depends:
     smoof,
     ParamHelpers,

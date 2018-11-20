@@ -16,5 +16,4 @@ omlTuneBenchR$adress = NULL # values different from NULL mena that the server is
     debugme::debugme()
     omlTuneBenchR$debug = TRUE
   }
-  omlTuneBenchR$parameter_ranges = readRDS(system.file("parameter_ranges.rds", package = "omlTuneBenchR"))
 }

@@ -32,12 +32,20 @@ make_omlbenchfunction = function(learner_id, task_id, include.extras = FALSE, ob
 }
 
 objective_wrapper = function(x, learner_id, task_id, include.extras, objective, par.set) {
- 
+
+  x = as.data.table(x)
+  res = get_nearest_setup(learner_id, task_id, x)
+  y = res[[objective]]
+
   if (include.extras) {
-    extras = lapply(res, function(x) {
-      x[[objective]] = NULL
-      setNames(x, paste0(".lookup.", names(x)))
-    })
+    extras = res[, {
+      tmp = as.list(.SD)
+      setattr(tmp, ".data.table.locked", NULL)
+      tmp[[objective]] = NULL
+      names(tmp) = paste0(".lookup.", names(tmp))
+      list(extras = list(tmp))
+    }, by = seq_len(nrow(res))]
+    extras = extras$extras
     if (length(y) == 1) extras = extras[[1]]
     attr(y, "extras") = extras
   }

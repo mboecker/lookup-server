@@ -1,14 +1,11 @@
 context("All Learners on all tasks")
 
-r = startOmlTuneServer()
-expect_true(r)
-
 task_id = 3
 learners = c("classif.kknn", "classif.glmnet", "classif.rpart", "classif.svm", "classif.xgboost", "classif.ranger")
 
 for (learner in learners) {
   test_that(learner, {
-    of = makeOmlBenchFunction(learner, task_id, include.extras = TRUE)
+    of = make_omlbenchfunction(learner, task_id, include.extras = TRUE)
     expect_class(of, "smoof_function")
     
     # Get random parameter set
