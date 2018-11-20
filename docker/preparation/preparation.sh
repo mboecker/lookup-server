@@ -16,7 +16,7 @@ done
 # 3. if not it will download it
 # 4. and load it into mysql
 # 5. after everything is in the local mysql db it will reduce it to openml_exporting
-# 6. generate parameter_ranges.Rds
+# 6. generate parameter_ranges.rds
 
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
@@ -91,7 +91,7 @@ echo "Prepare Parameter Ranges..."
 Rscript prepare_parameter_ranges.R	
 
 # 7. Read data from `openml_exporting`, re-format it in R and write it to rds files
-echo "Save everything into Rds files..."
+echo "Save everything into rds files..."
 Rscript prepare_db.R
 
 # 9. Save Task Metadata

@@ -11,7 +11,7 @@
 #' @return `data.frame`
 #' @export
 getAllRuns = function(learner_id, task_id) {
-  file = sprintf("data_%s_%i.rds", learner_id, task_id)
+  file = sprintf("rdsdata/data_%s_%i.rds", learner_id, task_id)
   rdsfile = fs::path_join(omlTuneBenchR$rdspath, file)
   if (!fs::file_exists(rdsfile)) {
     url = sprintf("%s/%s", omlTuneBenchR$remote, file)

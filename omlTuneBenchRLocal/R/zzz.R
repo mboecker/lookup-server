@@ -8,8 +8,8 @@ omlTuneBenchR = new.env()
 omlTuneBenchR$remote = "https://www.statistik.tu-dortmund.de/~richter/omltunebenchr"
 
 .onLoad = function(libname, pkgname) {
-  omlTuneBenchR$parameter_ranges = readRDS(system.file("parameter_ranges.Rds", package = "omlTuneBenchR"))
-  omlTuneBenchR$task_metadata = readRDS(system.file("task_metadata.Rds", package = "omlTuneBenchR"))
+  omlTuneBenchR$parameter_ranges = readRDS(system.file("parameter_ranges.rds", package = "omlTuneBenchR"))
+  omlTuneBenchR$task_metadata = readRDS(system.file("task_metadata.rds", package = "omlTuneBenchR"))
 
   # set path to store rds files
   omlTuneBenchR$rdspath = Sys.getenv("OML_TUNE_BENCH_RDSPATH") %??% "~/omlTuneBenchR/"

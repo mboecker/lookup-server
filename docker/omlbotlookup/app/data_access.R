@@ -12,10 +12,10 @@ cache.timeout = 120
 
 # See /docker/preparation/prepare_parameter_ranges.R for instructions.
 # This file contains parameter range data obtained from the omlbot-sourcecode.
-parameter_ranges = readRDS("parameter_ranges.Rds")
+parameter_ranges = readRDS("parameter_ranges.rds")
 
 # This file contains the number of features and entries for every task.
-task_metadata = readRDS("task_metadata.Rds")
+task_metadata = readRDS("task_metadata.rds")
 
 #' Return a list of parameter definitions. This list contains every necessary parameter for the given algorithm.
 #'

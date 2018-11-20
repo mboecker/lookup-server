@@ -10,7 +10,7 @@ mysql_host = "127.0.0.1"
 
 # Open database connection
 con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname_from, host = mysql_host)
-parameter_ranges = readRDS("../omlbotlookup/app/parameter_ranges.Rds")
+parameter_ranges = readRDS("../omlbotlookup/app/parameter_ranges.rds")
 
 #' Queries the database for a list of all run parameter configurations with the given algorithm ids, on the given task_id with every parameter in parameter_names.
 #'
