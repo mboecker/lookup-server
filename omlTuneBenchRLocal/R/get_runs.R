@@ -11,12 +11,22 @@
 #' @return `data.frame`
 #' @export
 get_runs = function(learner_id, task_id) {
-  file = sprintf("rdsdata/data_%s_%i.rds", learner_id, task_id)
-  rdsfile = fs::path_join(c(omlTuneBenchR$rdspath, file))
-  if (!fs::file_exists(rdsfile)) {
-    fs::dir_create(fs::path_dir(rdsfile))
-    url = sprintf("%s/%s", omlTuneBenchR$remote, file)
-    download.file(url, destfile = rdsfile)
+  # check if runs are in mem cache
+  ind = which(omlTuneBenchR$cache_table$learner_id == learner_id & omlTuneBenchR$cache_table$task_id == task_id)
+  if (length(ind) > 0) {
+    omlTuneBenchR$cache_table[ind, ]$last_accessed = Sys.time()
+    return(omlTuneBenchR$cache_table[ind, ]$data[[1]])
+  } else {
+    file = sprintf("rdsdata/data_%s_%i.rds", learner_id, task_id)
+    rdsfile = fs::path_join(c(omlTuneBenchR$rdspath, file))
+    if (!fs::file_exists(rdsfile)) {
+      fs::dir_create(fs::path_dir(rdsfile))
+      url = sprintf("%s/%s", omlTuneBenchR$remote, file)
+      download.file(url, destfile = rdsfile)
+    }
+    data = readRDS(rdsfile)
+    omlTuneBenchR$cache_table = rbind(omlTuneBenchR$cache_table, data.table(learner_id = learner_id, task_id = task_id, last_accessed = Sys.time(), data = list(data)))
+    cleanup_cache_table()
+    return(data)
   }
-  readRDS(rdsfile)
 }

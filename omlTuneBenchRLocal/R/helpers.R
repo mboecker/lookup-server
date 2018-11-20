@@ -25,3 +25,10 @@ get_task_metadata = function(task_id) {
 get_inverse_trafo = function(learner_id, param_name) {
   parameter_ranges[[learner_id]]$pars[[param_name]]$trafo.inverse
 }
+
+cleanup_cache_table = function() {
+  setkeyv(omlTuneBenchR$cache_table, "last_accessed")
+  while (object.size(omlTuneBenchR$cache_table) > omlTuneBenchR$cache_size * 1024^2) {
+    omlTuneBenchR$cache_table = omlTuneBenchR$cache_table[-1, ]
+  }
+}
