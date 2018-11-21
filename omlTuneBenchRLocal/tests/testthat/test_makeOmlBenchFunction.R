@@ -30,12 +30,6 @@ test_that("complex: randomForest", {
   expect_numeric(res)
   expect_list(attr(res, "extras"), names = "named")
 
-  ## Now with multiple values
-  xs = generateRandomDesign(20, par.set)
-  res = of(xs)
-  expect_numeric(res)
-  expect_list(attr(res, "extras"), len = 20, names = "unnamed")
-
 })
 
 test_that("on specific value with trafos works", {
@@ -46,4 +40,16 @@ test_that("on specific value with trafos works", {
   res = of(x)
   expect_equal(attr(res,"extras")$.lookup.rid, 2127568)
   expect_equal(as.numeric(res), 0.963079)
+
+  x = list(kernel = "radial", cost = 4.643833, gamma = -6.928392, degree = NA)
+  res = of(x)
+  expect_equal(attr(res,"extras")$.lookup.rid, 2127568)
+
+  x = list(kernel = "radial", cost = 4.643833, gamma = -6.928392)
+  res = of(x)
+  expect_equal(attr(res,"extras")$.lookup.rid, 2127568)
+
+  x = list(gamma = -6.928392, degree = NA, kernel = "radial", cost = 4.643833)
+  res = of(x)
+  expect_equal(attr(res,"extras")$.lookup.rid, 2127568)
 })

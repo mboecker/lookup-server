@@ -32,3 +32,16 @@ cleanup_cache_table = function() {
     omlTuneBenchR$cache_table = omlTuneBenchR$cache_table[-1, ]
   }
 }
+
+type_fix = function(x, par.set) {
+  # type conversion to make sure (Workaround for https://github.com/berndbischl/ParamHelpers/issues/203)
+  par_types = getParamTypes(par.set, with.nr = TRUE, use.names = TRUE, df.cols = TRUE)
+  df_types = vcapply(x, class)
+  type_misses = df_types == "logical" & par_types[names(df_types)] != df_types
+  if (any(type_misses)) {
+    for (col in names(type_misses[type_misses])) {
+      x[[col]] = as(x[[col]], par_types[col])
+    }
+  }
+  return(x)
+}

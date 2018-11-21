@@ -18,7 +18,7 @@ make_omlbenchfunction = function(learner_id, task_id, include.extras = FALSE, ob
 
   par.set = get_paramset_for_omllearner(learner_id)
   
-  makeSingleObjectiveFunction(
+  fun = makeSingleObjectiveFunction(
     name = paste0("Task_", task_id, "_Learner_", learner_id),
     fn = function(x) objective_wrapper(x, learner_id, task_id, include.extras, objective, par.set),
     has.simple.signature = FALSE,
@@ -27,11 +27,16 @@ make_omlbenchfunction = function(learner_id, task_id, include.extras = FALSE, ob
     noisy = FALSE,
     minimize = objective %in% c("rmse") #We get accuracy back right?
   )
+  class(fun) = c("omlbenchfunction", class(fun))
+  return(fun)
 }
 
 objective_wrapper = function(x, learner_id, task_id, include.extras, objective, par.set) {
 
   x = as.data.table(x)
+
+  x = type_fix(x, par.set)
+
   res = get_nearest_setup(learner_id, task_id, x)
   y = res[[objective]]
 
