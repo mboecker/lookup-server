@@ -7,7 +7,7 @@
 get_task_metadata(task_id)
 }
 \arguments{
-\item{task_id}{\link{numeric(n)} The task of interest}
+\item{task_id}{\code{numeric(n)} The task of interest}
 }
 \value{
 nrow and ncol of the dataset.

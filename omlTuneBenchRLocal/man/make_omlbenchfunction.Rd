@@ -19,9 +19,6 @@ Should the extras be attached as an attribute?}
 
 \item{objective}{(\code{character(1)})
 Which value should be optimized? Possible choices are \dQuote{auc}, \dQuote{accuracy} (default) and \dQuote{rmse}.}
-
-\item{api.chunksize}{(\code{numeric(1)})
-If too many points are requested with one function call this can help to split the request into smaller chunks.}
 }
 \value{
 \code{function}

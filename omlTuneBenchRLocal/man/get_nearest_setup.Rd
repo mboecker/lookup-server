@@ -11,11 +11,11 @@ We then return the performance of the found point.}
 get_nearest_setup(learner_id, task_id, parameters)
 }
 \arguments{
+\item{learner_id}{A vector of algorithm ids, which will all be treated equally. It is required, that these all have the same name (and parameters).}
+
 \item{task_id}{A task id, given in numeric form.}
 
 \item{parameters}{A data table of the form data.table(parA = c(valA1, valA2), parB = c(valB1, valB2))}
-
-\item{learner_ids}{A vector of algorithm ids, which will all be treated equally. It is required, that these all have the same name (and parameters).}
 }
 \value{
 A vector of setup ids of the nearest points to the given parameters in the database.
