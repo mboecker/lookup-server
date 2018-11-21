@@ -22,5 +22,11 @@ for (learner in learners) {
     expect_number(attr(res, "extras")[[".lookup.rmse"]])
     expect_number(attr(res, "extras")[[".lookup.scimark"]])
     expect_number(attr(res, "extras")[[".lookup.runtime"]])
+
+    # with multiple values
+    xd = generateRandomDesign(n = 100, par.set)
+    res = of(xd)
+    expect_numeric(res)
+    expect_list(attr(res, "extras"), len = 100, names = "unnamed")
   })
 }
