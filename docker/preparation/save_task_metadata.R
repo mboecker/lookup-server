@@ -17,11 +17,7 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 #'
 #' @return A named list, containing one enftry for each different algorithm name, and the algorithm ids for each algorithm name.
 get_algos = function() {
-  #FIXME Maybe A bit Ugly?
-  files = dir(rds_path, all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE)
-  files = gsub(pattern = "data_", replacement = "", x = files)
-  files = gsub(pattern = "_[0-9]+\\.rds", replacement = "", x = files)
-  return(unique(files))
+  return(c("classif.ranger","classif.kknn","classif.rpart","classif.svm","classif.xgboost","classif.glmnet"))
 }
 
 # Get raw data in wrong format
@@ -63,6 +59,17 @@ table = rbindlist(unlist(tables, recursive=FALSE))
 table = tidyr::spread(table, key = "algo_id", value = "n")
 
 result = merge(table, result, all.x = TRUE)
+
+# Post-processing:
+# There are data ids, whose runs are divided into multiple tasks.
+# We remove all those tasks but the one with the most runs.
+for(data_id in result$data) {
+  tasks = result[result$data == data_id,]
+  runs = tasks$classif.glmnet + tasks$classif.ranger + tasks$classif.kknn + tasks$classif.rpart + tasks$classif.xgboost + tasks$classif.svm
+  choose = which.max(runs)
+  remove_task_ids = tasks$task_id[-choose]
+  result = subset(result, !(result$task_id %in% remove_task_ids))
+}
 
 # Save to file
 saveRDS(result, file = "../omlbotlookup/app/task_metadata.rds")
