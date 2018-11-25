@@ -41,8 +41,6 @@ getTableFromDB = function(task_id, algo_id) {
     return(result)
   })
   
-  #cat(" (db done) ")
-  
   if(length(db_entries) == 0) {
     return(NULL)
   }
@@ -55,8 +53,6 @@ getTableFromDB = function(task_id, algo_id) {
   
   setDT(t)
   
-  #cat(" (add eval) ")
-  
   # Add evaluation measures from `evaluation`-table.
   if(nrow(t) > 0) {
     function_ids = c(4,45,54,59,63)
@@ -68,8 +64,6 @@ getTableFromDB = function(task_id, algo_id) {
     # Remove runs which are not currently selected (sql query above selected too many.)
     result = result[result$rid %in% t$rid,]
   
-    #cat(" (db done) ")
-    
     # Merge evaluation measures one-by-one into the table.
     for (i in seq_along(function_ids)) {
       function_id = function_ids[i]
