@@ -53,6 +53,12 @@ getTableFromDB = function(task_id, algo_id) {
   
   setDT(t)
   
+  # kknn:
+  # remove multiple runs with same k
+  if(algo_id == "classif.kknn") {
+    t = unique(t, by = "k")
+  }
+  
   # Add evaluation measures from `evaluation`-table.
   if(nrow(t) > 0) {
     function_ids = c(4,45,54,59,63)
