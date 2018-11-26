@@ -17,25 +17,30 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 #'
 #' @return A named list, containing one enftry for each different algorithm name, and the algorithm ids for each algorithm name.
 get_algos = function() {
-  return(c("classif.ranger","classif.kknn","classif.rpart","classif.svm","classif.xgboost","classif.glmnet"))
+  files = dir(rds_path, all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE)  
+  files = gsub(pattern = "data_(.+)_[0-9]+\\.rds", replacement = "\\1", x = files)  
+  return(unique(files))
 }
 
 # Get raw data in wrong format
 sql.exp = "SELECT t1.data, t1.quality, t1.value, t2.task_id FROM
 (SELECT data, quality, value FROM data_quality WHERE quality IN ('NumberOfFeatures', 'NumberOfInstances', 'NumberOfClasses', 'NumberOfNumericFeatures', 'NumberOfSymbolicFeatures', 'MajorityClassPercentage', 'DecisionStumpErrRate')) t1
-INNER JOIN
+RIGHT JOIN
 (SELECT task_id, value AS data FROM task_inputs WHERE input = 'source_data' AND task_id IN (SELECT DISTINCT task_id FROM run WHERE uploader = 2702)) t2
 ON t1.data = t2.data;"
 
 result = dbGetQuery(con, sql.exp)
-result = tidyr::spread(result, key = quality, value = value)
+result = tidyr::spread(result, key = quality, value = value, fill = NA) #NAs can occur bcz of right join.
+result = result[, !vapply(result, function(x) all(is.na(x)), logical(1))]
 result = dplyr::rename(result, features = "NumberOfFeatures", instances = "NumberOfInstances")
 for (j in seq_len(ncol(result))) {
   result[[j]] = type.convert(result[[j]])
-  if (is.numeric(result[[j]]) && all(result[[j]]%%1 == 0)) {
+  if (is.numeric(result[[j]]) && all(result[[j]]%%1 == 0, na.rm = TRUE)) {
     result[[j]] = as.integer(result[[j]])
   }
 }
+
+# dataset 1176 is deactivated and therefore some tasks (6566, 34536, 146085)
 
 # Automatic Exploration of Machine Learning Experiments on OpenML
 # Daniel Kühn, Philipp Probst, Janek Thomas, Bernd Bischl
@@ -56,20 +61,13 @@ tables = lapply(get_algos(), function(algo_id) {
   })
 })
 table = rbindlist(unlist(tables, recursive=FALSE))
+# for each algo select the task that has the most runs (we have multiple tasks on the same data)
+#table = merge(table, result[, c("task_id", "data")], by = "task_id")
+#table = table[, {i = which.max(n); .SD[i,]} , by = c("data", "algo_id")]
 table = tidyr::spread(table, key = "algo_id", value = "n")
 
-result = merge(table, result, all.x = TRUE)
-
-# Post-processing:
-# There are data ids, whose runs are divided into multiple tasks.
-# We remove all those tasks but the one with the most runs.
-for(data_id in result$data) {
-  tasks = result[result$data == data_id,]
-  runs = tasks$classif.glmnet + tasks$classif.ranger + tasks$classif.kknn + tasks$classif.rpart + tasks$classif.xgboost + tasks$classif.svm
-  choose = which.max(runs)
-  remove_task_ids = tasks$task_id[-choose]
-  result = subset(result, !(result$task_id %in% remove_task_ids))
-}
+result = merge(table, result, all.x = TRUE, by = c("task_id"))
+setkeyv(result, "data")
 
 # Save to file
 saveRDS(result, file = "../omlbotlookup/app/task_metadata.rds")
