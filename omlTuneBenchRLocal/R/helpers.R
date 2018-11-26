@@ -5,7 +5,7 @@
 #' @param task_id `numeric(n)` The task of interest
 #'
 #' @return nrow and ncol of the dataset.
-get_task_metadata = function(task_id) {
+get_task_dict = function(task_id) {
   # Find row in task_metadata
   this_task_id = task_id
   row = task_metadata[task_id %in% this_task_id, ]
