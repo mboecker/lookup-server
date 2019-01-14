@@ -16,7 +16,7 @@ done
 # 3. if not it will download it
 # 4. and load it into mysql
 # 5. after everything is in the local mysql db it will reduce it to openml_exporting
-# 6. generate parameter_ranges.Rds
+# 6. generate parameter_ranges.rds
 
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
@@ -67,37 +67,33 @@ else
 fi
 
 # 5. Write only usable data from `$database` into `openml_exporting`
-# TODO: only do this if database `openml_exporting` not found.
-echo "Preparing database for exporting."
-echo "  Shrinking..."
-$mysql_command $database < sql/shrink_db.sql
-
-echo "  Selecting..."
-if [ "$task3" == "true" ]; then
-  $mysql_command $database < sql/select_runs_task3.sql
+RESULT=`$mysql_command -e "SHOW DATABASES" | grep openml_exporting`
+if [ "$RESULT" == "openml_exporting" ]; then
+  echo "Export Ready DB already exists. Skip Shrinking."
 else
-  $mysql_command $database < sql/select_runs.sql
-fi
+  echo "Preparing database for exporting."
+  echo "  Shrinking..."
+  $mysql_command $database < sql/shrink_db.sql
 
-echo "  Inserting..."
-$mysql_command $database < sql/insert_run_data.sql
+  echo "  Selecting..."
+  if [ "$task3" == "true" ]; then
+    $mysql_command $database < sql/select_runs_task3.sql
+  else
+    $mysql_command $database < sql/select_runs.sql
+  fi
+
+  echo "  Inserting..."
+  $mysql_command $database < sql/insert_run_data.sql
+fi
 
 # 6.
 echo "Prepare Parameter Ranges..."
 Rscript prepare_parameter_ranges.R	
 
-# 7. Read data from `openml_exporting`, re-format it in R and write it to `openml_reformatted`
-$mysql_command -e "DROP DATABASE IF EXISTS openml_reformatted; CREATE DATABASE openml_reformatted;"
-echo "Reformat db..."
+# 7. Read data from `openml_exporting`, re-format it in R and write it to rds files
+echo "Save everything into rds files..."
 Rscript prepare_db.R
 
-# 8. Dump final reformatted database file
-echo "Done preparing. Exporting compressed data to reduced.sql.gz"
-if [ "$task3" == "true" ]; then
-  $mysqldump_command openml_reformatted | gzip > ../mysqldata/reduced_task3.sql.gz
-else
-  $mysqldump_command openml_reformatted | gzip > ../mysqldata/reduced.sql.gz
-fi
-
 # 9. Save Task Metadata
+echo "Save task metadata..."
 Rscript save_task_metadata.R

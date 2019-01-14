@@ -1,13 +1,13 @@
-#' @title Get ParamSet for Learner Name
+#' @title Get ParamSet for learner_id
 #' @description Returns a ParamSet Object for a given Learner
 #' 
-#' @param learner.name (`character(1)`)
+#' @param learner_id (`character(1)`)
 #'   The learner class (e.g. "classif.glmnet")
 #'
 #' @return [`ParamSet`]
-getParamSetForOmlLearner = function(learner.name) {
-  assertChoice(learner.name, names(parameter_ranges))  
-  par.set = parameter_ranges[[learner.name]]
+get_paramset_for_omllearner = function(learner_id) {
+  assertChoice(learner_id, names(parameter_ranges))  
+  par.set = parameter_ranges[[learner_id]]
   par.set$pars = lapply(par.set$pars, function(x) {
       x$trafo = x$trafo.inverse = NULL
       return(x)

@@ -31,7 +31,7 @@ parameters = function() {
   
   # Manually re-define the default for this "ranger"-parameter, because the new
   # "ignore" option is not implemented in the database but only in mlr.
-  bot.par.sets$classif.ranger$pars$respect.unordered.factors$default = "FALSE"
+  bot.par.sets$classif.ranger$pars$respect.unordered.factors$default = FALSE
   
   # Define transformations based on data to calculate the correct data-independent values for comparison.
   bot.par.sets$classif.ranger$pars$min.node.size$data.trafo = function(par, dict) round(2^(log(dict$nrow, 2) * par$min.node.size))
@@ -57,4 +57,4 @@ parameters = function() {
 parameter_ranges = parameters()
 
 # Store them in a file, which will be baked into the docker image.
-saveRDS(parameter_ranges, file = "../omlbotlookup/app/parameter_ranges.Rds")
+saveRDS(parameter_ranges, file = "../omlbotlookup/app/parameter_ranges.rds")

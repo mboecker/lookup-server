@@ -18,7 +18,7 @@ get_nearest_neighbour = function(table_trafo_scaled, parameters_trafo_scaled, nu
   # has to return list with vectors!
   get_nearest_neighbour_subset = function(parameters_subset, parameters_subset_selection = NULL) {
     if (!is.null(parameters_subset_selection)) {
-      table_subset = merge(table_trafo_scaled, parameters_subset_selection, all.x = FALSE)
+      table_subset = merge(table_trafo_scaled, parameters_subset_selection, by = names(parameters_subset_selection))
     } else {
       table_subset = copy(table_trafo_scaled)
     }

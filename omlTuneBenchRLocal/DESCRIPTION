@@ -1,6 +1,6 @@
-Package: omlTuneBenchR
+Package: omlTuneBenchRLocal
 Type: Package
-Title: Wrapper for the omlTuneBench API.
+Title: Local version of omlTuneBench
 Version: 0.1.0
 Authors@R: c(
     person("Richter", "Jakob", NULL, "jakob1richter@gmail.com", role = c("cre", "aut"))
@@ -10,15 +10,18 @@ License: BSD_3_clause + file LICENSE
 Encoding: UTF-8
 Roxygen: list(wrap = FALSE, markdown = TRUE)
 LazyData: true
+Imports:
+    fs,
+    purrr,
+    FNN
 Depends:
+    R (>= 2.10),
     smoof,
     ParamHelpers,
     checkmate,
-    httr,
-    jsonlite,
+    data.table
 Suggests:
     testthat,
-    knitr,
-    debugme
+    knitr
 VignetteBuilder: knitr
 RoxygenNote: 6.1.1

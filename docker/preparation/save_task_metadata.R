@@ -1,10 +1,12 @@
 library("RMySQL")
+library("data.table")
 
 # Declare database credentials
 mysql_username = "root"
 mysql_password = ""
 mysql_dbname_from = "openml_native"
 mysql_host = "127.0.0.1"
+rds_path = "../omlbotlookup/app/rdsdata/"
 
 # Open database connection
 con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname_from, host = mysql_host)
@@ -13,29 +15,32 @@ con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbna
 #'
 #' @param task_id This is `task_id` from the table `run` in the database.
 #'
-#' @return A named list, containing one entry for each different algorithm name, and the algorithm ids for each algorithm name.
+#' @return A named list, containing one enftry for each different algorithm name, and the algorithm ids for each algorithm name.
 get_algos = function() {
-  sql.exp = "SHOW TABLES IN openml_reformatted"
-  r = dbGetQuery(con, sql.exp)
-  r[[1]]
+  files = dir(rds_path, all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE)  
+  files = gsub(pattern = "data_(.+)_[0-9]+\\.rds", replacement = "\\1", x = files)  
+  return(unique(files))
 }
 
 # Get raw data in wrong format
 sql.exp = "SELECT t1.data, t1.quality, t1.value, t2.task_id FROM
 (SELECT data, quality, value FROM data_quality WHERE quality IN ('NumberOfFeatures', 'NumberOfInstances', 'NumberOfClasses', 'NumberOfNumericFeatures', 'NumberOfSymbolicFeatures', 'MajorityClassPercentage', 'DecisionStumpErrRate')) t1
-INNER JOIN
+RIGHT JOIN
 (SELECT task_id, value AS data FROM task_inputs WHERE input = 'source_data' AND task_id IN (SELECT DISTINCT task_id FROM run WHERE uploader = 2702)) t2
 ON t1.data = t2.data;"
 
 result = dbGetQuery(con, sql.exp)
-result = tidyr::spread(result, key = quality, value = value)
+result = tidyr::spread(result, key = quality, value = value, fill = NA) #NAs can occur bcz of right join.
+result = result[, !vapply(result, function(x) all(is.na(x)), logical(1))]
 result = dplyr::rename(result, features = "NumberOfFeatures", instances = "NumberOfInstances")
 for (j in seq_len(ncol(result))) {
   result[[j]] = type.convert(result[[j]])
-  if (is.numeric(result[[j]]) && all(result[[j]]%%1 == 0)) {
+  if (is.numeric(result[[j]]) && all(result[[j]]%%1 == 0, na.rm = TRUE)) {
     result[[j]] = as.integer(result[[j]])
   }
 }
+
+# dataset 1176 is deactivated and therefore some tasks (6566, 34536, 146085)
 
 # Automatic Exploration of Machine Learning Experiments on OpenML
 # Daniel Kühn, Philipp Probst, Janek Thomas, Bernd Bischl
@@ -47,19 +52,29 @@ result$data_in_paper = result$data %in% paper_data_ids
 
 # Select number of runs with given algo and every task from database.
 tables = lapply(get_algos(), function(algo_id) {
-  sql.exp = sprintf("SELECT task_id, COUNT(*) as `n_%s_runs` FROM openml_reformatted.`%s` GROUP BY task_id;", substring(algo_id, 9), algo_id)
-  result = dbGetQuery(con, sql.exp)
-  result
+  files = dir(rds_path, all.files = TRUE, pattern = paste0("data_", algo_id, "_[0-9]+\\.rds"), include.dirs = FALSE)
+  lapply(files, function(file) {
+    table = readRDS(file.path(rds_path, file))
+    n = nrow(table)
+    task_id = as.numeric(regmatches(file, regexpr("[0-9]+", file)))
+    data.frame(algo_id = algo_id, task_id = task_id, n = n)
+  })
 })
+table = rbindlist(unlist(tables, recursive=FALSE))
+# for each algo select the task that has the most runs (we have multiple tasks on the same data)
+#table = merge(table, result[, c("task_id", "data")], by = "task_id")
+#table = table[, {i = which.max(n); .SD[i,]} , by = c("data", "algo_id")]
+table = tidyr::spread(table, key = "algo_id", value = "n")
 
-# Merge list of results into table.
-table = Reduce(function(x,y) merge(x,y,all=T), tables)
-
-# Any 0 at this point is due to no entry under a task_id for some learner.
-# Therefore, there were 0 runs of that algo + task.
-table[is.na(table)] = 0
-
-result = merge(table, result, all.x = TRUE)
+result = merge(table, result, all.x = TRUE, by = c("task_id"))
+setkeyv(result, "data")
 
 # Save to file
-saveRDS(result, file = "../omlbotlookup/app/task_metadata.Rds")
+saveRDS(result, file = "../omlbotlookup/app/task_metadata.rds")
+
+# save for package
+rda.file = dir("../omlbotlookup/app/", all.files = TRUE, pattern = "*\\.rds", include.dirs = FALSE, full.names = TRUE)
+names = sub(pattern = "(.*)\\..*$", replacement = "\\1", basename(rda.file))
+objects = setNames(lapply(rda.file, readRDS), names)
+do.call(save, c(as.list(names(objects)), list(file = "../../omlTuneBenchR/R/sysdata.rda", envir = as.environment(objects), compress = "bzip2")))
+do.call(save, c(as.list(names(objects)), list(file = "../../omlTuneBenchRLocal/R/sysdata.rda", envir = as.environment(objects), compress = "bzip2")))

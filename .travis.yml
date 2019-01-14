@@ -11,10 +11,6 @@ r_packages:
 - devtools
 - roxygen2
 before_install:
-- cd omlTuneBenchR
+- cd omlTuneBenchRLocal
 before_script:
 - R --no-save <<< 'library("devtools"); document()'
-- bash ../docker/rebuild-omlbotlookup.sh
-- bash ../docker/run-omlbotlookup.sh
-- sleep 120
-- bash ../docker/import-task3-data.sh

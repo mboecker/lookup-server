@@ -1,5 +1,4 @@
 library("data.table")
-library("RMySQL")
 library("FNN")
 library("memoise")
 library("httr")
@@ -8,25 +7,15 @@ library("ParamHelpers")
 source("paramToJSONList.R")
 source("helper.R")
 
-# Declare database credentials
-mysql_username = "root"
-mysql_password = ""
-mysql_dbname = "openml"
-mysql_host = "127.0.0.1"
-
 # Delete the cache after 120 seconds
 cache.timeout = 120
 
-# Open database connection
-con <- dbConnect(MySQL(), user = mysql_username, password = mysql_password, dbname = mysql_dbname, host = mysql_host)
-
-
 # See /docker/preparation/prepare_parameter_ranges.R for instructions.
 # This file contains parameter range data obtained from the omlbot-sourcecode.
-parameter_ranges = readRDS("parameter_ranges.Rds")
+parameter_ranges = readRDS("parameter_ranges.rds")
 
 # This file contains the number of features and entries for every task.
-task_metadata = readRDS("task_metadata.Rds")
+task_metadata = readRDS("task_metadata.rds")
 
 #' Return a list of parameter definitions. This list contains every necessary parameter for the given algorithm.
 #'
@@ -55,15 +44,7 @@ get_params_for_algo = function(algo_name) {
 #'
 #' @return A vector containing every task_id, which has been evaluated at least once.
 get_possible_task_ids = function() {
-  all_ids = c()
-
-  for(algo_id in get_algos()) {
-    sql.exp = sprintf("SELECT DISTINCT task_id FROM `%s`;", algo_id)
-    r = dbGetQuery(con, sql.exp)
-    all_ids = c(all_ids, r$task_id)
-  }
-
-  return(unique(all_ids))
+  task_metadata$task_id
 }
 
 
@@ -93,7 +74,8 @@ is_parameter_list_ok = function(algo_name, params) {
 #' @return nrow and ncol of the dataset.
 get_task_metadata = function(task_id) {
   # Find row in task_metadata
-  row = task_metadata[task_metadata$task_id %in% task_id, ]
+  this_task_id = task_id
+  row = task_metadata[task_id %in% this_task_id, ]
 
   if (nrow(row) != length(task_id)) {
     stop(sprintf("The task metadata for task %s has %i results!", paste(task_id, collapse = ","), nrow(row)))
@@ -110,16 +92,7 @@ get_task_metadata = function(task_id) {
 #'
 #' @return A dataframe containing: A column "setup", with the setup_id. A column "<parameter_name>" for every parameter. And one row of data for every setup, that has been run with one of the given algorithms, containing the parameter_data of that run.
 get_table = function(algo_id, task_id) {
-  sql.exp = sprintf("SELECT * FROM `%s` WHERE task_id = '%s'", algo_id, task_id)
-  r = dbGetQuery(con, sql.exp)
-  setDT(r)
-  # convert columns wiht 0,1 values to logicals
-  for(rowname in names(r)) {
-    if (all(r[[rowname]] %in% c(0,1))) {
-      r[[rowname]] = as.logical(r[[rowname]])
-    }
-  }
-  return(r)
+  readRDS(file = paste0("rdsdata/data_", algo_id, "_", task_id, ".rds"))
 }
 
 
@@ -191,7 +164,7 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
   # find nearest neighbours
   res = get_nearest_neighbour(table_trafo_scaled, parameters_trafo_scaled, numeric_params)
 
-  res = merge(res[, c("task_id", "rid", "setup", "distance"), with = FALSE], table, all.x = TRUE, all.y = FALSE, sort = FALSE)
+  #res = merge(res[, c("task_id", "rid", "setup", "distance"), with = FALSE], table, all.x = TRUE, all.y = FALSE, sort = FALSE)
 
   return(res)
 }
@@ -202,15 +175,13 @@ get_nearest_setup = function(algo_id, task_id, parameters) {
 #'
 #' @return A named list, containing one entry for each different algorithm name, and the algorithm ids for each algorithm name.
 get_algos = function() {
-  sql.exp = "SHOW TABLES"
-  r = dbGetQuery(con, sql.exp)
-  r[[1]]
+  c("classif.ranger","classif.rpart","classif.kknn","classif.svm","classif.glmnet","classif.xgboost")
 }
 
 #' Returns a table containing important information on the tasks availiable in the database.
 #' 
 #' @return [data.frame] 
 get_overview_table = function() {
-  return(task_metadata)
+  task_metadata
 }
 

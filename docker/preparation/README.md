@@ -6,7 +6,7 @@
   * Downloads nightly OML database snapshot
   * Loads snapshot into local MySQL DB
   * Outputs reduced SQL DB Dump to `../omlbotlookup/mysqldata/reduced.sql.gz`
-  * Outputs additional Metadata into `../omlbotlookup/app/*.Rds` files
+  * Outputs additional Metadata into `../omlbotlookup/app/*.rds` files
 
 # Debugging Version of the data: Task 3
 

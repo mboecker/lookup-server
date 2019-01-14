@@ -1,0 +1,16 @@
+cd d^.*\.Rproj$
+^\.Rproj\.user$
+todo-files
+.gitignore
+.travis.yml
+README.md
+README.Rmd
+man-roxygen
+attic
+appveyor.yml
+^_pkgdown\.yml$
+^docs$
+^.+_cache$
+^.+_files$
+^vignettes/.+\.html$
+^inst/docker/mysqldata/.*$

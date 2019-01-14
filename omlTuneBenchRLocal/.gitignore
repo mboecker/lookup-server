@@ -1,0 +1,11 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.grd
+*.vrt
+*.gri
+vignettes/*_files/
+vignettes/*.html
+vignettes/*.R
+*_cache
