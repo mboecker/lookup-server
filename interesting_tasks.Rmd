@@ -1,0 +1,68 @@
+```{r setup, include=FALSE}
+
+devtools::load_all("omlTuneBenchRLocal/")
+get_runs_local = function(algo_id , task_id) {
+  fname = paste0("docker/omlbotlookup/app/rdsdata/data_", algo_id, "_", task_id, ".rds")
+  if(file.exists(fname))
+  {
+    readRDS(fname)
+  }
+  else 
+  {
+    data.frame()
+  }
+}
+
+my_apply = function(df, fn) {
+  apply(df, 1, function(both) {
+    algo_id = both["algo_id"]
+    task_id = as.numeric(both["task_id"])
+    fn(algo_id = algo_id, task_id = task_id)
+  })
+}
+
+```
+
+```{r plots, echo=FALSE, fig.width=8, fig.height=6, fig.path="Figs/"}
+
+runs = expand.grid(algo_id = get_available_algos(), task_id = get_available_tasks())
+n.runs = my_apply(runs, function(algo_id, task_id) {
+  runs = get_runs_local(algo_id, task_id)
+  nrow(runs)
+})
+
+# Filter algo+task combos which don't have any runs at all
+runs = runs[n.runs > 0,]
+n.runs = n.runs[n.runs > 0]
+
+# Hardness
+maxq = my_apply(runs, function(algo_id, task_id) {
+  runs = get_runs_local(algo_id, task_id)
+  acc = runs$accuracy
+  max(acc) - quantile(acc, 0.95)
+})
+
+# Normalized and Unnormalized runtimes
+mad.runtime = my_apply(runs, function(algo_id, task_id) {
+  runs = get_runs_local(algo_id, task_id)
+  runtime = runs$runtime
+  mad(runtime)
+})
+mad.norm.runtime = my_apply(runs, function(algo_id, task_id) {
+  runs = get_runs_local(algo_id, task_id)
+  runtime = runs$runtime
+  scimark = runs$scimark
+  norm.rt = log(runtime + 1) / scimark
+  mad(norm.rt)
+})
+var.norm.runtime = my_apply(runs, function(algo_id, task_id) {
+  runs = get_runs_local(algo_id, task_id)
+  runtime = runs$runtime
+  scimark = runs$scimark
+  norm.rt = log(runtime + 1) / scimark
+  var(norm.rt)
+})
+
+t = data.frame(runs, n.runs, maxq, mad.runtime, mad.norm.runtime, var.norm.runtime)
+knitr::kable(t, col.names = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "log. Runtime / Scimark (Var.)"))
+```
