@@ -1,11 +1,11 @@
 devtools::load_all("omlTuneBenchRLocal/")
 
 # Create a big RDS file
-big_list = lapply(get_available_tasks(), function(task_id) {
-#big_list = lapply(c(3,282), function(task_id) {
+#big_list = lapply(get_available_tasks(), function(task_id) {
+big_list = lapply(c(3,282), function(task_id) {
   rbindlist(lapply(get_available_algos(), function(algo_id) {
     if(nrow(get_runs(algo_id, task_id)) == 0) {
-      data.frame(NA)
+      data.frame()
     } else {
       cbind(task_id, get_runs(algo_id, task_id))
     }
