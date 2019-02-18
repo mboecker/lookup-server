@@ -22,9 +22,7 @@ my_apply = function(df, fn) {
 }
 
 ```
-
-```{r plots, echo=FALSE, fig.width=8, fig.height=6, fig.path="Figs/"}
-
+```{r data, include=FALSE}
 runs = expand.grid(algo_id = get_available_algos(), task_id = get_available_tasks())
 n.runs = my_apply(runs, function(algo_id, task_id) {
   runs = get_runs_local(algo_id, task_id)
@@ -34,6 +32,14 @@ n.runs = my_apply(runs, function(algo_id, task_id) {
 # Filter algo+task combos which don't have any runs at all
 runs = runs[n.runs > 0,]
 n.runs = n.runs[n.runs > 0]
+```
+```{r plots, include=FALSE, fig.width=8, fig.height=6, fig.path="Figs/"}
+my_apply(runs, function(algo_id, task_id) {
+  runs = get_runs_local(algo_id, task_id)
+  invisible(hist(runs$accuracy))
+})
+```
+```{r table, echo=FALSE}
 
 # Hardness
 maxq = my_apply(runs, function(algo_id, task_id) {
@@ -63,6 +69,8 @@ var.norm.runtime = my_apply(runs, function(algo_id, task_id) {
   var(norm.rt)
 })
 
-t = data.frame(runs, n.runs, maxq, mad.runtime, mad.norm.runtime, var.norm.runtime)
-knitr::kable(t, col.names = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "log. Runtime / Scimark (Var.)"))
+accuracy.hists = paste0("![Plot](Figs/plots-", seq_along(runs[,1]),".png)")
+  
+t = data.frame(runs, n.runs, maxq, mad.runtime, mad.norm.runtime, var.norm.runtime, accuracy.hists)
+knitr::kable(t, col.names = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "log. Runtime / Scimark (Var.)", "Accuracy"))
 ```
