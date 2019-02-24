@@ -1,6 +1,6 @@
 ```{r setup, include=FALSE}
-
 devtools::load_all("omlTuneBenchRLocal/")
+library("DT")
 get_runs_local = function(algo_id , task_id) {
   fname = paste0("docker/omlbotlookup/app/rdsdata/data_", algo_id, "_", task_id, ".rds")
   if(file.exists(fname))
@@ -33,13 +33,19 @@ n.runs = my_apply(runs, function(algo_id, task_id) {
 runs = runs[n.runs > 0,]
 n.runs = n.runs[n.runs > 0]
 ```
-```{r plots, include=FALSE, fig.width=8, fig.height=6, fig.path="Figs/"}
+```{r plots, include=FALSE, fig.width=8, fig.height=6, fig.path="hist_acc/"}
 my_apply(runs, function(algo_id, task_id) {
   runs = get_runs_local(algo_id, task_id)
   invisible(hist(runs$accuracy))
 })
 ```
-```{r table, echo=FALSE}
+```{r plots2, include=FALSE, fig.width=8, fig.height=6, fig.path="hist_rt/"}
+my_apply(runs, function(algo_id, task_id) {
+  runs = get_runs_local(algo_id, task_id)
+  invisible(hist(runs$runtime / runs$scimark))
+})
+```
+```{r measures, include=FALSE}
 
 # Hardness
 maxq = my_apply(runs, function(algo_id, task_id) {
@@ -68,9 +74,32 @@ var.norm.runtime = my_apply(runs, function(algo_id, task_id) {
   norm.rt = log(runtime + 1) / scimark
   var(norm.rt)
 })
+online = my_apply(runs, function(algo_id, task_id) {
+  of = make_omlbenchfunction(algo_id, task_id, include.extras = TRUE)
+  par.set = getParamSet(of)
+  x = sampleValue(par.set)
+  tryCatch({ of(x); TRUE}, error = function(e) FALSE)
+})
+density = my_apply(runs, function(algo_id, task_id) {
+  of = make_omlbenchfunction(algo_id, task_id, include.extras = TRUE)
+  par.set = getParamSet(of)
+  xs = rbindlist(sampleValues(par.set, 1000))
+  v = tryCatch(of(xs), error = function(e) NULL)
+  print(paste0(algo_id, "-", task_id))
+  if (is.null(v)) {
+    NA
+  } else {
+    dists = lapply(attr(v, "extras"), function(y) {
+      y$.lookup.distance
+    })
+    mean(simplify2array(dists))
+  }
+})
 
-accuracy.hists = paste0("![Plot](Figs/plots-", seq_along(runs[,1]),".png)")
-  
-t = data.frame(runs, n.runs, maxq, mad.runtime, mad.norm.runtime, var.norm.runtime, accuracy.hists)
-knitr::kable(t, col.names = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "log. Runtime / Scimark (Var.)", "Accuracy"))
+accuracy.hists = paste0("<img src='hist_acc/plots-", seq_along(runs[,1]),".png' />")
+runtime.hists = paste0("<img src='hist_rt/plots2-", seq_along(runs[,1]),".png' />")
+```
+```{r table, echo = FALSE}
+t = data.frame(runs, n.runs, maxq, mad.runtime, mad.norm.runtime, var.norm.runtime, density, log(density), accuracy.hists, runtime.hists)
+datatable(t, colnames = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "log. Runtime / Scimark (Var.)", "Density", "log. Density", "Accuracy", "Runtime / Scimark"), escape = FALSE)
 ```

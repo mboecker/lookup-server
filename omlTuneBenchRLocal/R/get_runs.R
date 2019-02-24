@@ -25,8 +25,13 @@ get_runs = function(learner_id, task_id) {
       download.file(url, destfile = rdsfile)
     }
     data = readRDS(rdsfile)
+    
+    par.set = get_paramset_for_omllearner(learner_id)
+    data = type_fix(data, par.set)
+    
     omlTuneBenchR$cache_table = rbind(omlTuneBenchR$cache_table, data.table(learner_id = learner_id, task_id = task_id, last_accessed = Sys.time(), data = list(data)))
     cleanup_cache_table()
+    
     return(data)
   }
 }
