@@ -40,7 +40,9 @@ type_fix = function(x, par.set) {
   type_misses = df_types == "logical" & par_types[names(df_types)] != df_types
   if (any(type_misses)) {
     for (col in names(type_misses[type_misses])) {
-      x[[col]] = as(x[[col]], par_types[col])
+      if(par_types[col] != "factor") {
+        x[[col]] = as(x[[col]], par_types[col])
+      }
     }
   }
   for (col in names(par_types)) {
