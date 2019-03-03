@@ -45,7 +45,7 @@ type_fix = function(x, par.set) {
   }
   for (col in names(par_types)) {
     if (par_types[col] == "logical") {
-      x[[col]] = as(x[[col]], par_types[col])
+      x[[col]] = as.logical(x[[col]])
     }
   }
   return(x)
