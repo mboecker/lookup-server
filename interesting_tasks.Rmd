@@ -1,17 +1,7 @@
 ```{r setup, include=FALSE}
 devtools::load_all("omlTuneBenchRLocal/")
 library("DT")
-get_runs_local = function(algo_id , task_id) {
-  fname = paste0("docker/omlbotlookup/app/rdsdata/data_", algo_id, "_", task_id, ".rds")
-  if(file.exists(fname))
-  {
-    readRDS(fname)
-  }
-  else 
-  {
-    data.frame()
-  }
-}
+get_runs_local = get_runs
 
 my_apply = function(df, fn) {
   apply(df, 1, function(both) {
@@ -83,7 +73,7 @@ online = my_apply(runs, function(algo_id, task_id) {
 density = my_apply(runs, function(algo_id, task_id) {
   of = make_omlbenchfunction(algo_id, task_id, include.extras = TRUE)
   par.set = getParamSet(of)
-  xs = rbindlist(sampleValues(par.set, 1000))
+  xs = rbindlist(sampleValues(par.set, 10))
   v = tryCatch(of(xs), error = function(e) NULL)
   print(paste0(algo_id, "-", task_id))
   if (is.null(v)) {
@@ -96,10 +86,10 @@ density = my_apply(runs, function(algo_id, task_id) {
   }
 })
 
-accuracy.hists = paste0("<img src='hist_acc/plots-", seq_along(runs[,1]),".png' />")
-runtime.hists = paste0("<img src='hist_rt/plots2-", seq_along(runs[,1]),".png' />")
+accuracy.hists = paste0("<a href='hist_acc/plots-'", seq_along(runs[,1]),".png' target='_blank'><img src='hist_acc/plots-", seq_along(runs[,1]),".png' /></a>")
+runtime.hists = paste0("<a href='rt/plots2-'", seq_along(runs[,1]),".png' target='_blank'><img src='hist_rt/plots2-", seq_along(runs[,1]),".png' /></a>")
 ```
 ```{r table, echo = FALSE}
-t = data.frame(runs, n.runs, maxq, mad.runtime, mad.norm.runtime, var.norm.runtime, density, log(density), accuracy.hists, runtime.hists)
-datatable(t, colnames = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "log. Runtime / Scimark (Var.)", "Density", "log. Density", "Accuracy", "Runtime / Scimark"), escape = FALSE)
+t = data.frame(runs, n.runs, sprintf("%.2f", maxq), sprintf("%.4f", mad.runtime), sprintf("%e", mad.norm.runtime), sprintf("%e", density), accuracy.hists, runtime.hists)
+datatable(t, colnames = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "Density", "Accuracy", "Runtime / Scimark"), escape = FALSE, filter = "top")
 ```
