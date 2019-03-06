@@ -11,6 +11,7 @@ my_apply = function(df, fn) {
   })
 }
 
+SAMPLE_N = 1000
 ```
 ```{r data, include=FALSE}
 runs = expand.grid(algo_id = get_available_algos(), task_id = get_available_tasks())
@@ -73,7 +74,7 @@ online = my_apply(runs, function(algo_id, task_id) {
 density = my_apply(runs, function(algo_id, task_id) {
   of = make_omlbenchfunction(algo_id, task_id, include.extras = TRUE)
   par.set = getParamSet(of)
-  xs = rbindlist(sampleValues(par.set, 10))
+  xs = generateRandomDesign(n = SAMPLE_N, par.set)
   v = tryCatch(of(xs), error = function(e) NULL)
   print(paste0(algo_id, "-", task_id))
   if (is.null(v)) {
