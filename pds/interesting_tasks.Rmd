@@ -87,7 +87,7 @@ density = my_apply(runs, function(algo_id, task_id) {
 })
 
 accuracy.hists = paste0("<a href='hist_acc/plots-", seq_along(runs[,1]),".png' target='_blank'><img src='hist_acc/plots-", seq_along(runs[,1]),".png' /></a>")
-runtime.hists = paste0("<a href='rt/plots2-", seq_along(runs[,1]),".png' target='_blank'><img src='hist_rt/plots2-", seq_along(runs[,1]),".png' /></a>")
+runtime.hists = paste0("<a href='hist_rt/plots2-", seq_along(runs[,1]),".png' target='_blank'><img src='hist_rt/plots2-", seq_along(runs[,1]),".png' /></a>")
 ```
 ```{r table, echo = FALSE}
 t = data.frame(runs, n.runs, sprintf("%.2f", maxq), sprintf("%.4f", mad.runtime), sprintf("%e", mad.norm.runtime), sprintf("%e", density), accuracy.hists, runtime.hists)
