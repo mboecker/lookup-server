@@ -11,7 +11,7 @@ my_apply = function(df, fn) {
   })
 }
 
-SAMPLE_N = 1000
+SAMPLE_N = 2
 ```
 ```{r data, include=FALSE}
 runs = expand.grid(algo_id = get_available_algos(), task_id = get_available_tasks())
@@ -87,10 +87,15 @@ density = my_apply(runs, function(algo_id, task_id) {
   }
 })
 
+tasks_openml100 = omlTuneBenchRLocal::get_task_metadata()[data_in_paper == TRUE][,task_id]
+tasks_openml100 = my_apply(runs, function(algo_id, task_id) {
+  ifelse(task_id %in% tasks_openml100, "Yes", "No")
+})
+
 accuracy.hists = paste0("<a href='hist_acc/plots-", seq_along(runs[,1]),".png' target='_blank'><img src='hist_acc/plots-", seq_along(runs[,1]),".png' /></a>")
 runtime.hists = paste0("<a href='hist_rt/plots2-", seq_along(runs[,1]),".png' target='_blank'><img src='hist_rt/plots2-", seq_along(runs[,1]),".png' /></a>")
 ```
 ```{r table, echo = FALSE}
-t = data.frame(runs, n.runs, sprintf("%.2f", maxq), sprintf("%.4f", mad.runtime), sprintf("%e", mad.norm.runtime), sprintf("%e", density), accuracy.hists, runtime.hists)
-datatable(t, colnames = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "Density", "Accuracy", "Runtime / Scimark"), escape = FALSE, filter = "top")
+t = data.frame(runs, n.runs, sprintf("%.2f", maxq), sprintf("%.4f", mad.runtime), sprintf("%e", mad.norm.runtime), sprintf("%e", density), accuracy.hists, runtime.hists, tasks_openml100)
+datatable(t, colnames = c("Learner", "Task ID", "# Runs", "max - 0.95q", "log. Runtime (MAD)", "log. Runtime / Scimark (MAD)", "Density", "Accuracy", "Runtime / Scimark", "OpenML100"), escape = FALSE, filter = "top")
 ```
