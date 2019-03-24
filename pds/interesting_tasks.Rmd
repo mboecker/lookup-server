@@ -11,7 +11,7 @@ my_apply = function(df, fn) {
   })
 }
 
-SAMPLE_N = 2
+SAMPLE_N = 1000
 ```
 ```{r data, include=FALSE}
 runs = expand.grid(algo_id = get_available_algos(), task_id = get_available_tasks())
